@@ -28,6 +28,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 const manifestPath = path.join(rootDir, "manifest.json");
+
+function readAppVersion(): string {
+  const packagePath = path.join(rootDir, "package.json");
+  if (fs.existsSync(packagePath)) {
+    const parsed = JSON.parse(fs.readFileSync(packagePath, "utf-8")) as {
+      version?: unknown;
+    };
+    if (typeof parsed.version === "string" && parsed.version.trim()) {
+      return parsed.version.trim();
+    }
+  }
+
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as {
+    version?: unknown;
+  };
+  if (typeof manifest.version === "string" && manifest.version.trim()) {
+    return manifest.version.trim();
+  }
+
+  return "dev";
+}
+
+const appVersion = readAppVersion();
 const config = loadAppConfig(rootDir);
 const settingsStore = new SettingsStore(rootDir, {
   debridEnabled: config.debridEnabled,
@@ -59,7 +82,7 @@ const searchService = new SearchService({
 });
 
 const debridRouter = new DebridRouter([new TorboxAdapter()], 7000);
-const streamCache = new StreamCache(streamCacheDir);
+const streamCache = new StreamCache(streamCacheDir, `${appVersion}:clip-duration-v2`);
 const ffmpegResolver = new FfmpegResolver(config.streamResolutionTimeoutMs);
 const streamService = new StreamService({
   router: debridRouter,
@@ -80,12 +103,17 @@ const linkTokenService = new LinkTokenService(
 );
 const securityEventLog = new SecurityEventLog();
 const memoryRateLimitBackend = new MemoryRateLimitBackend();
-const rateLimitBackend = config.redisUrl
-  ? new RedisRateLimitBackend(config.redisUrl, memoryRateLimitBackend, config.publicLaunchMode)
+const useRedisRateLimitBackend = Boolean(config.redisUrl && config.publicLaunchMode);
+const rateLimitBackend = useRedisRateLimitBackend
+  ? new RedisRateLimitBackend(config.redisUrl!, memoryRateLimitBackend, true)
   : memoryRateLimitBackend;
 
-if (!config.redisUrl) {
-  console.warn("rate_limit_backend=memory (single-instance mode)");
+if (!useRedisRateLimitBackend) {
+  if (config.redisUrl && !config.publicLaunchMode) {
+    console.warn("rate_limit_backend=memory (redis ignored unless PUBLIC_LAUNCH_MODE=true)");
+  } else {
+    console.warn("rate_limit_backend=memory (single-instance mode)");
+  }
 }
 
 const publicSafety = new PublicSafety({

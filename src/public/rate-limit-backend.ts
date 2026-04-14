@@ -53,12 +53,21 @@ export class RedisRateLimitBackend implements RateLimitBackend {
   private readonly client: RedisClientType;
   private readonly fallback: MemoryRateLimitBackend;
   private readonly strict: boolean;
+  private readonly connectTimeoutMs: number;
   private connectPromise: Promise<unknown> | null = null;
+  private retryAfter = 0;
 
-  public constructor(url: string, fallback?: MemoryRateLimitBackend, strict = false) {
-    this.client = createClient({ url });
+  public constructor(
+    url: string,
+    fallback?: MemoryRateLimitBackend,
+    strict = false,
+    client?: RedisClientType,
+    connectTimeoutMs = 1000,
+  ) {
+    this.client = client ?? createClient({ url });
     this.fallback = fallback ?? new MemoryRateLimitBackend();
     this.strict = strict;
+    this.connectTimeoutMs = connectTimeoutMs;
     this.client.on("error", () => {
       return;
     });
@@ -68,10 +77,29 @@ export class RedisRateLimitBackend implements RateLimitBackend {
     if (this.client.isOpen) {
       return;
     }
-    if (!this.connectPromise) {
-      this.connectPromise = this.client.connect();
+    if (Date.now() < this.retryAfter) {
+      throw new Error("redis_rate_backend_unavailable");
     }
-    await this.connectPromise;
+    if (!this.connectPromise) {
+      this.connectPromise = this.client.connect().catch((error) => {
+        this.connectPromise = null;
+        this.retryAfter = Date.now() + this.connectTimeoutMs;
+        throw error;
+      });
+    }
+
+    try {
+      await Promise.race([
+        this.connectPromise,
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("redis_rate_backend_unavailable")), this.connectTimeoutMs);
+        }),
+      ]);
+    } catch (error) {
+      this.connectPromise = null;
+      this.retryAfter = Date.now() + this.connectTimeoutMs;
+      throw error;
+    }
   }
 
   public async increment(key: string, windowMs: number): Promise<RateCounter> {

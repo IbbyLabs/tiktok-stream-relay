@@ -107,6 +107,11 @@ function parseList(value: string | undefined, fallback: string[]): string[] {
   return items.length > 0 ? items : fallback;
 }
 
+function parseOptionalString(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 export function loadAppConfig(rootDir: string): AppConfig {
   loadDotEnv(rootDir);
 
@@ -134,7 +139,7 @@ export function loadAppConfig(rootDir: string): AppConfig {
     ),
     liveSearchMaxResults: parseNumber(process.env.LIVE_SEARCH_MAX_RESULTS, 36),
     searchMaxLimit: parseNumber(process.env.SEARCH_MAX_LIMIT, 60),
-    tiktokAuthCookie: process.env.TIKTOK_AUTH_COOKIE,
+    tiktokAuthCookie: parseOptionalString(process.env.TIKTOK_AUTH_COOKIE),
     searchRetryMaxAttempts: parseNumber(process.env.SEARCH_RETRY_MAX_ATTEMPTS, 2),
     searchRetryBaseDelayMs: parseNumber(process.env.SEARCH_RETRY_BASE_DELAY_MS, 250),
     trendingRefreshOnStartup: parseBoolean(
@@ -163,15 +168,15 @@ export function loadAppConfig(rootDir: string): AppConfig {
       defaultTrendingQueries,
     ),
     trendingMaxItems: parseNumber(process.env.TRENDING_MAX_ITEMS, 12),
-    redisUrl: process.env.REDIS_URL,
-    torboxToken: process.env.TORBOX_TOKEN,
+    redisUrl: parseOptionalString(process.env.REDIS_URL),
+    torboxToken: parseOptionalString(process.env.TORBOX_TOKEN),
     addonConfigEnabled: parseBoolean(process.env.ADDON_CONFIG_ENABLED, true),
     addonLifecycleEnabled: parseBoolean(process.env.ADDON_LIFECYCLE_ENABLED, true),
     addonLinkTtlSeconds: parseNumber(process.env.ADDON_LINK_TTL_SECONDS, 7 * 24 * 60 * 60),
-    addonLinkSigningKeys: process.env.ADDON_LINK_SIGNING_KEYS,
-    addonCryptoSecret: process.env.ADDON_CRYPTO_SECRET,
+    addonLinkSigningKeys: parseOptionalString(process.env.ADDON_LINK_SIGNING_KEYS),
+    addonCryptoSecret: parseOptionalString(process.env.ADDON_CRYPTO_SECRET),
     publicLaunchMode: parseBoolean(process.env.PUBLIC_LAUNCH_MODE, false),
-    adminTelemetryToken: process.env.ADMIN_TELEMETRY_TOKEN,
+    adminTelemetryToken: parseOptionalString(process.env.ADMIN_TELEMETRY_TOKEN),
     publicAllowlistIps: parseList(process.env.PUBLIC_ALLOWLIST_IPS, []),
   };
 

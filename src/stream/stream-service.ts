@@ -7,6 +7,150 @@ import { normalizeTikTokUrl } from "../utils/tiktok-url.js";
 import { StreamCache } from "../cache/stream-cache.js";
 import { AudioFormat, FfmpegResolver } from "./ffmpeg-resolver.js";
 
+function collectNumericValues(value: unknown, key: string, results: number[]): void {
+  if (!value || typeof value !== "object") {
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectNumericValues(item, key, results);
+    }
+    return;
+  }
+
+  const record = value as Record<string, unknown>;
+  const candidate = record[key];
+  if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) {
+    results.push(candidate);
+  }
+
+  for (const nested of Object.values(record)) {
+    collectNumericValues(nested, key, results);
+  }
+}
+
+function findClipDurationHint(value: unknown): number | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findClipDurationHint(item);
+      if (typeof found === "number") {
+        return found;
+      }
+    }
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  const hasPlayableVideoUrl = [record.playAddr, record.downloadAddr].some(
+    (entry) => typeof entry === "string" && entry.includes("mime_type=video_mp4"),
+  );
+  if (hasPlayableVideoUrl && typeof record.duration === "number" && Number.isFinite(record.duration)) {
+    return record.duration;
+  }
+
+  for (const nested of Object.values(record)) {
+    const found = findClipDurationHint(nested);
+    if (typeof found === "number") {
+      return found;
+    }
+  }
+
+  return undefined;
+}
+
+export function extractPlayableUrlsFromPageHtml(html: string): string[] {
+  const decodeUrl = (value: string): string =>
+    value
+      .replace(/\\+u002F/g, "/")
+      .replace(/\\+u0026/g, "&")
+      .replace(/\\\//g, "/");
+
+  const scripts = [
+    /<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application\/json">([\s\S]*?)<\/script>/,
+    /<script id="SIGI_STATE" type="application\/json">([\s\S]*?)<\/script>/,
+  ];
+
+  for (const pattern of scripts) {
+    const match = html.match(pattern);
+    if (!match) {
+      continue;
+    }
+    try {
+      const parsed = JSON.parse(match[1]) as unknown;
+      const raw = JSON.stringify(parsed);
+      const playAddrMatches = [...raw.matchAll(/"playAddr":"(https:[^"]+)"/g)].map((entry) =>
+        decodeUrl(entry[1]),
+      );
+      const downloadAddrMatches = [...raw.matchAll(/"downloadAddr":"(https:[^"]+)"/g)].map((entry) =>
+        decodeUrl(entry[1]),
+      );
+      const audioPlayMatches = [...raw.matchAll(/"playUrl":"(https:[^"]*mime_type=audio_mpeg[^"]*)"/g)].map((entry) =>
+        decodeUrl(entry[1]),
+      );
+
+      const ordered = [
+        ...playAddrMatches,
+        ...downloadAddrMatches,
+        ...audioPlayMatches,
+      ];
+
+      const unique = [...new Set(ordered.filter((value) => value.startsWith("https://")))];
+      if (unique.length > 0) {
+        return unique;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return [];
+}
+
+export function extractClipDurationHintFromPageHtml(html: string): number | undefined {
+  const scripts = [
+    /<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application\/json">([\s\S]*?)<\/script>/,
+    /<script id="SIGI_STATE" type="application\/json">([\s\S]*?)<\/script>/,
+  ];
+
+  for (const pattern of scripts) {
+    const match = html.match(pattern);
+    if (!match) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(match[1]) as unknown;
+      const durations: number[] = [];
+      collectNumericValues(parsed, "duration", durations);
+      const smallestDuration = durations.length > 0 ? Math.min(...durations) : undefined;
+
+      const directMatch = findClipDurationHint(parsed);
+      if (typeof directMatch === "number") {
+        if (typeof smallestDuration === "number" && smallestDuration < directMatch) {
+          return smallestDuration;
+        }
+        return directMatch;
+      }
+
+      if (durations.length > 1) {
+        return Math.min(...durations);
+      }
+      if (durations.length === 1) {
+        return durations[0];
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return undefined;
+}
+
 interface ResolveArgs {
   sourceUrl: string;
   format?: AudioFormat;
@@ -25,6 +169,7 @@ export class StreamService {
   private readonly localTtlMs: number;
   private readonly urlMapCache: MemoryCache<StreamResolution>;
   private readonly pageMediaUrlCache: MemoryCache<string[]>;
+  private readonly pageDurationHintCache: MemoryCache<number>;
   private readonly pageRequestHeadersCache: MemoryCache<Record<string, string>>;
   private readonly resolveMediaUrls: (sourceUrl: string) => Promise<string[]>;
 
@@ -44,6 +189,7 @@ export class StreamService {
       args.urlMapCache ??
       new MemoryCache<StreamResolution>(2 * 60 * 60 * 1000, 10_000);
     this.pageMediaUrlCache = new MemoryCache<string[]>(2 * 60 * 60 * 1000, 10_000);
+    this.pageDurationHintCache = new MemoryCache<number>(2 * 60 * 60 * 1000, 10_000);
     this.pageRequestHeadersCache = new MemoryCache<Record<string, string>>(
       2 * 60 * 60 * 1000,
       10_000,
@@ -68,53 +214,8 @@ export class StreamService {
     return serialized || undefined;
   }
 
-  private decodeUrl(value: string): string {
-    return value
-      .replace(/\\u002F/g, "/")
-      .replace(/\\u0026/g, "&")
-      .replace(/\\\//g, "/");
-  }
-
   private extractPlayableUrlsFromPage(html: string): string[] {
-    const scripts = [
-      /<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application\/json">([\s\S]*?)<\/script>/,
-      /<script id="SIGI_STATE" type="application\/json">([\s\S]*?)<\/script>/,
-    ];
-
-    for (const pattern of scripts) {
-      const match = html.match(pattern);
-      if (!match) {
-        continue;
-      }
-      try {
-        const parsed = JSON.parse(match[1]) as unknown;
-        const raw = JSON.stringify(parsed);
-        const audioPlayMatches = [...raw.matchAll(/"playUrl":"(https:[^"]*mime_type=audio_mpeg[^"]*)"/g)].map((entry) =>
-          this.decodeUrl(entry[1]),
-        );
-        const playAddrMatches = [...raw.matchAll(/"playAddr":"(https:[^"]+)"/g)].map((entry) =>
-          this.decodeUrl(entry[1]),
-        );
-        const downloadAddrMatches = [...raw.matchAll(/"downloadAddr":"(https:[^"]+)"/g)].map((entry) =>
-          this.decodeUrl(entry[1]),
-        );
-
-        const ordered = [
-          ...audioPlayMatches,
-          ...playAddrMatches,
-          ...downloadAddrMatches,
-        ];
-
-        const unique = [...new Set(ordered.filter((value) => value.startsWith("https://")))];
-        if (unique.length > 0) {
-          return unique;
-        }
-      } catch {
-        continue;
-      }
-    }
-
-    return [];
+    return extractPlayableUrlsFromPageHtml(html);
   }
 
   private async resolveTranscodeInputUrls(sourceUrl: string): Promise<string[]> {
@@ -135,6 +236,11 @@ export class StreamService {
     const playable = this.extractPlayableUrlsFromPage(response.data);
     if (playable.length === 0) {
       throw new HttpError(500, "stream_extraction_failed");
+    }
+
+    const durationHint = extractClipDurationHintFromPageHtml(response.data);
+    if (typeof durationHint === "number") {
+      this.pageDurationHintCache.set(sourceUrl, durationHint);
     }
 
     const cookieHeader = this.cookieHeaderFromSetCookie(response.headers["set-cookie"]);
@@ -199,6 +305,7 @@ export class StreamService {
 
     const outputPath = this.streamCache.createOutputPath(key, format);
     const transcodeInputUrls = await this.resolveMediaUrls(sourceUrl);
+    const durationHint = this.pageDurationHintCache.get(sourceUrl) ?? undefined;
     const cachedRequestHeaders = this.pageRequestHeadersCache.get(sourceUrl) ?? {};
     const startedAt = Date.now();
     let transcodeError: unknown = null;
@@ -218,6 +325,7 @@ export class StreamService {
                   Origin: "https://www.tiktok.com",
                 },
               },
+              durationHint,
             );
         transcodeError = null;
         break;

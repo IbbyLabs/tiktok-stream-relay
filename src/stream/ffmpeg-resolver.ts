@@ -31,6 +31,7 @@ export class FfmpegResolver {
     format: AudioFormat,
     signal?: AbortSignal,
     inputRequest?: InputRequestOptions,
+    durationHintSeconds?: number,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const requestArgs: string[] = [];
@@ -50,6 +51,9 @@ export class FfmpegResolver {
         "-i",
         sourceUrl,
         "-vn",
+        ...(typeof durationHintSeconds === "number" && durationHintSeconds > 0
+          ? ["-t", String(durationHintSeconds)]
+          : []),
         ...this.argsForFormat(format),
         outputPath,
       ]);

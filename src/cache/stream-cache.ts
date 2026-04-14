@@ -16,10 +16,12 @@ interface StreamMetadata {
 export class StreamCache {
   private readonly audioDir: string;
   private readonly metadataPath: string;
+  private readonly cacheVersion: string;
 
-  public constructor(baseDir: string) {
+  public constructor(baseDir: string, cacheVersion = "dev") {
     this.audioDir = path.join(baseDir, "audio");
     this.metadataPath = path.join(baseDir, "stream-cache.json");
+    this.cacheVersion = cacheVersion;
     fs.mkdirSync(this.audioDir, { recursive: true });
     if (!fs.existsSync(this.metadataPath)) {
       this.writeMetadata({ entries: [] });
@@ -46,7 +48,10 @@ export class StreamCache {
   }
 
   public keyFromUrl(sourceUrl: string, format = "mp3"): string {
-    return crypto.createHash("sha1").update(`${sourceUrl}:${format}`).digest("hex");
+    return crypto
+      .createHash("sha1")
+      .update(`${this.cacheVersion}:${sourceUrl}:${format}`)
+      .digest("hex");
   }
 
   public getValidFilePath(key: string): string | null {

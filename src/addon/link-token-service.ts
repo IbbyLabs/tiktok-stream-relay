@@ -17,11 +17,17 @@ function parseSigningKeys(raw: string): SigningKey[] {
     .map((item) => item.trim())
     .filter(Boolean)
     .map((item) => {
-      const [version, key] = item.split(":");
+      const separatorIndex = item.indexOf(":");
+      if (separatorIndex === -1) {
+        return { version: "v1", key: item };
+      }
+
+      const version = item.slice(0, separatorIndex).trim();
+      const key = item.slice(separatorIndex + 1).trim();
       if (!version || !key) {
         throw new Error("invalid_addon_link_signing_keys");
       }
-      return { version: version.trim(), key: key.trim() };
+      return { version, key };
     });
 }
 

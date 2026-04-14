@@ -45,6 +45,9 @@ ADMIN_TELEMETRY_TOKEN=
 PUBLIC_ALLOWLIST_IPS=
 ```
 
+For local use, blank addon secret values are fine and the service will use `config/runtime-secrets.json`.
+If you do set `ADDON_LINK_SIGNING_KEYS` manually, use either `v1:<secret>` or a single raw secret, which is treated as `v1`.
+
 3. Start the dev server:
    `npm run dev`
 4. Build for production:
@@ -176,7 +179,7 @@ Public portal and security:
 - `ADDON_CONFIG_ENABLED`: enable `/configure` portal.
 - `ADDON_LIFECYCLE_ENABLED`: enable lifecycle mutation endpoints.
 - `ADDON_LINK_TTL_SECONDS`: addon link token TTL.
-- `ADDON_LINK_SIGNING_KEYS`: required for secure public mode.
+- `ADDON_LINK_SIGNING_KEYS`: required for secure public mode. Use `v1:<secret>` for explicit versioning. A single raw secret is accepted for local use and is treated as `v1`.
 - `ADDON_CRYPTO_SECRET`: required for secure public mode.
 - `PUBLIC_LAUNCH_MODE`: enforce strict public safety checks.
 - `ADMIN_TELEMETRY_TOKEN`: required for `/public/metrics` and `/public/events`.
