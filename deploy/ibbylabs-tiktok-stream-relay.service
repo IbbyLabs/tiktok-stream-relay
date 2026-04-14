@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/ibbylabs-tiktok-stream-relay
-ExecStart=/usr/bin/node /opt/ibbylabs-tiktok-stream-relay/dist/index.js
+WorkingDirectory=/opt/tiktok-stream-relay
+ExecStart=/usr/bin/node /opt/tiktok-stream-relay/dist/index.js
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production

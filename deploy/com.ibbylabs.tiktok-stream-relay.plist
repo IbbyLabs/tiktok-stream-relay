@@ -7,10 +7,10 @@
     <key>ProgramArguments</key>
     <array>
       <string>/usr/local/bin/node</string>
-      <string>/opt/ibbylabs-tiktok-stream-relay/dist/index.js</string>
+      <string>/opt/tiktok-stream-relay/dist/index.js</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/opt/ibbylabs-tiktok-stream-relay</string>
+    <string>/opt/tiktok-stream-relay</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
@@ -23,8 +23,8 @@
       <string>3000</string>
     </dict>
     <key>StandardOutPath</key>
-    <string>/opt/ibbylabs-tiktok-stream-relay/cache/launchd.out.log</string>
+    <string>/opt/tiktok-stream-relay/cache/launchd.out.log</string>
     <key>StandardErrorPath</key>
-    <string>/opt/ibbylabs-tiktok-stream-relay/cache/launchd.err.log</string>
+    <string>/opt/tiktok-stream-relay/cache/launchd.err.log</string>
   </dict>
 </plist>

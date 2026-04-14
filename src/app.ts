@@ -351,7 +351,7 @@ export function createApp(args: {
   app.get("/health", (_request, response) => {
     response.json({
       status: "ok",
-      service: "ibbylabs-tiktok-stream-relay",
+      service: "tiktok-stream-relay",
     });
   });
 
@@ -753,7 +753,7 @@ export function createApp(args: {
           <div class="quick-links">
             <a class="quick-link quick-link-eclipse" href="https://eclipsemusic.app" target="_blank" rel="noopener noreferrer"><span class="quick-link-icon" aria-hidden="true"><img src="https://eclipsemusic.app/configure/icon" alt="" /></span><span>Visit Eclipse</span></a>
             <a class="quick-link quick-link-discord" href="https://discord.gg/yKM74spK3Q" target="_blank" rel="noopener noreferrer"><span class="quick-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.317 4.369A19.791 19.791 0 0 0 15.885 3c-.191.328-.403.77-.553 1.116a18.27 18.27 0 0 0-6.664 0A12.64 12.64 0 0 0 8.114 3a19.736 19.736 0 0 0-4.432 1.369C.883 8.58.127 12.686.505 16.735a19.9 19.9 0 0 0 5.993 3.03 14.24 14.24 0 0 0 1.284-2.11 12.925 12.925 0 0 1-2.021-.973c.17-.124.336-.255.496-.389a14.097 14.097 0 0 0 11.486 0c.161.134.327.265.497.389-.645.379-1.323.704-2.022.973.37.75.8 1.456 1.284 2.11a19.873 19.873 0 0 0 5.993-3.03c.444-4.696-.759-8.765-3.178-12.366ZM9.813 14.248c-1.181 0-2.149-1.085-2.149-2.419s.95-2.418 2.149-2.418c1.2 0 2.168 1.093 2.149 2.418 0 1.334-.95 2.419-2.149 2.419Zm4.374 0c-1.181 0-2.149-1.085-2.149-2.419s.95-2.418 2.149-2.418c1.2 0 2.168 1.093 2.149 2.418 0 1.334-.949 2.419-2.149 2.419Z"/></svg></span><span>Eclipse Discord</span></a>
-            <a class="quick-link quick-link-repo" href="https://github.com/IbbyLabs/ibbylabs-tiktok-stream-relay" target="_blank" rel="noopener noreferrer"><span class="quick-link-icon" aria-hidden="true"><img src="https://github.githubassets.com/favicons/favicon.svg" alt="" /></span><span>View Repo</span></a>
+            <a class="quick-link quick-link-repo" href="https://github.com/IbbyLabs/tiktok-stream-relay" target="_blank" rel="noopener noreferrer"><span class="quick-link-icon" aria-hidden="true"><img src="https://github.githubassets.com/favicons/favicon.svg" alt="" /></span><span>View Repo</span></a>
             <a class="quick-link quick-link-support" href="https://kofi.ibbylabs.dev" target="_blank" rel="noopener noreferrer"><span class="quick-link-icon" aria-hidden="true"><img src="https://storage.ko-fi.com/cdn/logomarkLogo.png" alt="" /></span><span>Support Me</span></a>
             <a class="quick-link quick-link-uptime" href="https://uptime.ibbylabs.dev" target="_blank" rel="noopener noreferrer"><span class="quick-link-icon" aria-hidden="true"><img src="https://uptime.ibbylabs.dev/favicon.png" alt="" /></span><span>Uptime Tracker</span></a>
           </div>

@@ -1,5 +1,5 @@
 services:
-  ibbylabs-tiktok-stream-relay:
+  tiktok-stream-relay:
     image: ${GHCR_IMAGE:-ghcr.io/ibbylabs/tiktok-stream-relay}:${IMAGE_TAG:-latest}
     container_name: tiktok-stream-relay
     env_file:

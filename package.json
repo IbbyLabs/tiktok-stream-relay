@@ -1,11 +1,11 @@
 {
-  "name": "ibbylabs-tiktok-stream-relay",
+  "name": "tiktok-stream-relay",
   "version": "0.1.0",
   "license": "MIT",
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/IbbyLabs/ibbylabs-tiktok-stream-relay.git"
+    "url": "https://github.com/IbbyLabs/tiktok-stream-relay.git"
   },
   "description": "IbbyLabs self-hosted TikTok Stream Relay backend for Eclipse.",
   "type": "module",

@@ -1,8 +1,8 @@
 services:
-  ibbylabs-tiktok-stream-relay:
+  tiktok-stream-relay:
     build:
       context: .
-    container_name: ibbylabs-tiktok-stream-relay-local
+    container_name: tiktok-stream-relay-local
     env_file:
       - .env
     ports:

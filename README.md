@@ -67,7 +67,7 @@ The repo now ships two compose entrypoints:
 Build the image manually:
 
 ```bash
-docker build -t ibbylabs-tiktok-stream-relay .
+docker build -t tiktok-stream-relay .
 ```
 
 Run the container:
@@ -76,7 +76,7 @@ Run the container:
 docker run --rm -p 3000:3000 \
   -e DEBRID_ENABLED=true \
   -e TORBOX_TOKEN=your-token \
-   ibbylabs-tiktok-stream-relay
+   tiktok-stream-relay
 ```
 
 The image installs FFmpeg in the runtime layer and serves the addon on port 3000.
