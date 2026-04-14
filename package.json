@@ -1,0 +1,48 @@
+{
+  "name": "ibbylabs-tiktok-stream-relay",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IbbyLabs/ibbylabs-tiktok-stream-relay.git"
+  },
+  "description": "IbbyLabs self-hosted TikTok Stream Relay backend for Eclipse.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "generate:release-notes": "node scripts/generate-github-release-notes.mjs",
+    "lint": "eslint src test",
+    "format": "prettier --write \"**/*.{ts,js,mjs,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,mjs,json,md}\"",
+    "refresh:trending": "node --import tsx scripts/refresh-trending-sounds.ts",
+    "release": "node scripts/release.mjs",
+    "release:patch": "node scripts/release.mjs patch",
+    "release:minor": "node scripts/release.mjs minor",
+    "release:major": "node scripts/release.mjs major",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/**/*.test.ts"
+  },
+  "dependencies": {
+    "axios": "^1.9.0",
+    "express": "^5.1.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "redis": "^5.0.1",
+    "xbogus": "^1.0.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.2",
+    "eslint": "^10.2.0",
+    "prettier": "^3.8.2",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.58.2"
+  }
+}

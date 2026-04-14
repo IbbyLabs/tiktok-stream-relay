@@ -1,0 +1,13 @@
+node_modules/
+dist/*
+!dist/.gitkeep
+cache/*
+!cache/.gitkeep
+npm-debug.log*
+*.log
+coverage/
+*.tsbuildinfo
+.DS_Store
+.env
+.env.local
+.env.*.local

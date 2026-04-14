@@ -1,0 +1,28 @@
+services:
+  ibbylabs-tiktok-stream-relay:
+    image: ${GHCR_IMAGE:-ghcr.io/ibbylabs/tiktok-stream-relay}:${IMAGE_TAG:-latest}
+    container_name: tiktok-stream-relay
+    env_file:
+      - .env
+    expose:
+      - "3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tiktok-stream-relay.rule=Host(`${TIKTOK_STREAM_RELAY_HOSTNAME?}`)"
+      - "traefik.http.routers.tiktok-stream-relay.entrypoints=websecure"
+      - "traefik.http.routers.tiktok-stream-relay.tls.certresolver=letsencrypt"
+      - "traefik.http.services.tiktok-stream-relay.loadbalancer.server.port=3000"
+      # Uncomment when Authelia is deployed in the stack.
+      # - "traefik.http.routers.tiktok-stream-relay.middlewares=authelia@docker"
+    restart: unless-stopped
+    volumes:
+      - ${DOCKER_DATA_DIR:-./data}/tiktok-stream-relay/cache:/app/cache
+      - ${DOCKER_DATA_DIR:-./data}/tiktok-stream-relay/config:/app/config
+    profiles:
+      - tiktok-stream-relay
+      - all
+
+networks:
+  default:
+    name: ${DOCKER_NETWORK:-aio_default}
+    external: ${DOCKER_NETWORK_EXTERNAL:-false}

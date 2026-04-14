@@ -1,0 +1,7 @@
+node_modules
+dist
+cache
+.git
+.github
+openspec
+.DS_Store

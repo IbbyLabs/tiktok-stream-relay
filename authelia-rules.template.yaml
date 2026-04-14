@@ -1,0 +1,23 @@
+# Authelia access_control snippet for IbbyLabs TikTok Stream Relay.
+#
+# Template users:
+# - Ensure TEMPLATE_TIKTOK_STREAM_RELAY_HOSTNAME is set in the Authelia container environment.
+# - Paste these rules before any wildcard catch-all rule.
+#
+# Standalone users:
+# - Replace {{ env "TEMPLATE_TIKTOK_STREAM_RELAY_HOSTNAME" }} with your public hostname.
+# - Keep this block before broad one_factor or two_factor default rules.
+
+access_control:
+  rules:
+    - domain: '{{ env "TEMPLATE_TIKTOK_STREAM_RELAY_HOSTNAME" }}'
+      policy: bypass
+      resources:
+        - '^/manifest\.json$'
+        - '^/addon/.+/manifest\.json$'
+        - '^/search$'
+        - '^/stream(?:/.*)?$'
+        - '^/health$'
+        - '^/public/(?:metrics|events)$'
+    - domain: '{{ env "TEMPLATE_TIKTOK_STREAM_RELAY_HOSTNAME" }}'
+      policy: two_factor

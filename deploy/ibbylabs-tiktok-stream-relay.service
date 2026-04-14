@@ -1,0 +1,15 @@
+[Unit]
+Description=IbbyLabs TikTok Stream Relay
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/ibbylabs-tiktok-stream-relay
+ExecStart=/usr/bin/node /opt/ibbylabs-tiktok-stream-relay/dist/index.js
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+[Install]
+WantedBy=multi-user.target

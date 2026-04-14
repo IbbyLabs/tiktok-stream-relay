@@ -1,0 +1,13 @@
+services:
+  ibbylabs-tiktok-stream-relay:
+    build:
+      context: .
+    container_name: ibbylabs-tiktok-stream-relay-local
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-3000}:3000"
+    restart: unless-stopped
+    volumes:
+      - ./cache:/app/cache
+      - ./config:/app/config
