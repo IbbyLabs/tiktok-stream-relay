@@ -1,8 +1,13 @@
 {
   "id": "com.ibby.tiktok-stream-relay",
   "name": "IbbyLabs TikTok Stream Relay",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Search TikTok sounds and resolve playable audio for Eclipse.",
-  "resources": ["search", "stream"],
-  "types": ["track"]
+  "resources": [
+    "search",
+    "stream"
+  ],
+  "types": [
+    "track"
+  ]
 }
