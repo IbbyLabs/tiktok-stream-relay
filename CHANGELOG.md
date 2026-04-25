@@ -4,6 +4,16 @@
 
 <a id="v0-1-1"></a>
 
+<a id="v0-2-0"></a>
+
+## [v0.2.0] - 25/04/2026
+
+### Added
+* redesign /configure page
+
+### Other Changes
+* build docker image before publishing release
+
 ## [v0.1.1] - 14/04/2026
 
 ### Fixed
