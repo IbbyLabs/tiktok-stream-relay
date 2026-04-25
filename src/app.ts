@@ -417,374 +417,416 @@ export function createApp(args: {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
     <title>IbbyLabs TikTok Stream Relay</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Figtree:wght@400;500;600&display=swap" as="style" />
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet" />
     <style>
       :root {
-        --bg: #06050f;
-        --card: #110f24;
-        --line: #2a2550;
-        --text: #ece9ff;
-        --muted: #b3a9d6;
-        --accent: #af74ff;
-        --accent-dark: #21183f;
-        --good: #45d483;
+        --bg: oklch(9% 0.012 240);
+        --surface: oklch(15% 0.016 240);
+        --surface-raised: oklch(19% 0.02 240);
+        --border: oklch(26% 0.018 240);
+        --border-subtle: oklch(20% 0.015 240);
+        --border-focus: oklch(60% 0.14 235);
+        --text: oklch(93% 0.006 240);
+        --muted: oklch(57% 0.018 240);
+        --label: oklch(70% 0.015 240);
+        --accent: oklch(53% 0.12 235);
+        --accent-hover: oklch(58% 0.12 235);
+        --good: oklch(72% 0.15 145);
+        --font-display: "Bricolage Grotesque", "Arial Black", sans-serif;
+        --font-ui: "Figtree", "Helvetica Neue", sans-serif;
+        --space-xs: 4px;
+        --space-sm: 8px;
+        --space-md: 16px;
+        --space-lg: 24px;
+        --space-xl: 40px;
+        --space-2xl: 64px;
+        --radius-sm: 6px;
+        --radius-md: 10px;
       }
-      * { box-sizing: border-box; }
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       body {
-        margin: 0;
-        min-height: 100vh;
+        min-height: 100dvh;
+        background: var(--bg);
         color: var(--text);
-        font-family: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
-        background:
-          radial-gradient(circle at 24% -10%, #2c2257 0, transparent 38%),
-          radial-gradient(circle at 100% 5%, #1f193f 0, transparent 30%),
-          linear-gradient(180deg, #06050f 0%, #0b0819 100%);
-        padding: 1.25rem 0.9rem 2rem;
+        font-family: var(--font-ui);
+        font-size: 0.9375rem;
+        line-height: 1.5;
+        padding: var(--space-xl) var(--space-md) var(--space-2xl);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
       .shell {
-        width: min(640px, 100%);
-        margin: 0 auto;
+        width: 100%;
+        max-width: 520px;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xl);
       }
-      .card {
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 1rem;
-        background: linear-gradient(180deg, #151133 0%, #100d24 100%);
-        box-shadow: 0 20px 42px rgba(0, 0, 0, 0.45);
-      }
-      .hero {
-        border: 1px solid #382e6a;
-        border-radius: 12px;
-        padding: 0.85rem;
-        background: linear-gradient(180deg, #18133a 0%, #120f2a 100%);
-        margin-bottom: 0.8rem;
-      }
-      .brand-head {
+      .page-header {
         display: flex;
         align-items: center;
-        gap: 0.55rem;
-        margin-bottom: 0.55rem;
+        gap: var(--space-md);
+        padding-bottom: var(--space-lg);
+        border-bottom: 1px solid var(--border-subtle);
       }
-      .brand-mark {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        border: 1px solid #4a3a87;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+      .brand-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: var(--radius-sm);
         object-fit: contain;
-        background: #140f30;
-        padding: 2px;
+        flex-shrink: 0;
+        background: var(--surface);
       }
       .brand-name {
-        margin: 0;
-        font-size: 0.79rem;
+        font-family: var(--font-display);
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text);
+        letter-spacing: -0.01em;
+      }
+      .brand-sub {
+        font-size: 0.8125rem;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .setup-panel {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-lg);
+      }
+      .setup-header h1 {
+        font-family: var(--font-display);
+        font-size: 1.5rem;
         font-weight: 700;
-        color: #daccff;
+        letter-spacing: -0.025em;
+        color: var(--text);
+        line-height: 1.2;
+        margin-bottom: var(--space-sm);
+      }
+      .setup-header p {
+        font-size: 0.875rem;
+        color: var(--muted);
+        line-height: 1.65;
+        max-width: 56ch;
+      }
+      .section-divider {
+        height: 1px;
+        background: var(--border-subtle);
+      }
+      .config-form,
+      .manifest-section {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+      }
+      .field-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--label);
         letter-spacing: 0.05em;
         text-transform: uppercase;
+        transition: color 0.15s ease;
       }
-      .eyebrow {
-        display: inline-block;
-        margin: 0;
-        font-size: 0.72rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #d0c2ff;
-      }
-      h1 {
-        margin: 0;
-        font-size: 1.45rem;
-        font-weight: 700;
-      }
-      .lead {
-        margin: 0.35rem 0 1rem;
-        color: var(--muted);
-        font-size: 0.92rem;
-      }
-      .quick-links {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-      }
-      .quick-link {
-        --quick-top: #334564;
-        --quick-bottom: #17233c;
-        --quick-border: #90a3cf;
-        --quick-text: #f7f9ff;
-        --quick-shadow: rgba(14, 21, 42, 0.44);
-        --quick-icon-bg: rgba(255, 255, 255, 0.14);
-        --quick-icon-border: rgba(255, 255, 255, 0.12);
-        --quick-hover-border: #d2ddff;
-        --quick-hover-shadow: rgba(35, 51, 98, 0.34);
-        --quick-outline: #d2ddff;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.35rem;
-        position: relative;
-        overflow: hidden;
-        border: 1px solid var(--quick-border);
-        border-radius: 999px;
-        background: linear-gradient(180deg, var(--quick-top) 0%, var(--quick-bottom) 100%);
-        color: var(--quick-text);
-        padding: 0.5rem 0.82rem;
-        font-size: 0.8rem;
-        font-weight: 700;
-        letter-spacing: 0.03em;
-        text-decoration: none;
-        box-shadow: 0 14px 30px var(--quick-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
-      }
-      .quick-link::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
-        pointer-events: none;
-      }
-      .quick-link span {
-        position: relative;
-        z-index: 1;
-      }
-      .quick-link-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 1.32rem;
-        height: 1.32rem;
-        padding: 0.14rem;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.24);
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
-        flex: 0 0 auto;
-        overflow: hidden;
-      }
-      .quick-link-icon svg {
-        width: 100%;
-        height: 100%;
-        display: block;
-        fill: currentColor;
-      }
-      .quick-link-icon img {
-        width: 100%;
-        height: 100%;
-        display: block;
-        object-fit: contain;
-      }
-      .quick-link-eclipse .quick-link-icon img {
-        transform: scale(1.14);
-      }
-      .quick-link-repo {
-        --quick-top: #3a4b68;
-        --quick-bottom: #182236;
-        --quick-border: #99abd0;
-        --quick-shadow: rgba(18, 29, 55, 0.46);
-        --quick-hover-border: #e1e8ff;
-        --quick-hover-shadow: rgba(41, 59, 106, 0.34);
-        --quick-outline: #d5defd;
-      }
-      .quick-link-eclipse {
-        --quick-top: #dce7ff;
-        --quick-bottom: #94b6ff;
-        --quick-border: #f2f6ff;
-        --quick-text: #102445;
-        --quick-shadow: rgba(78, 121, 224, 0.3);
-        --quick-hover-border: #ffffff;
-        --quick-hover-shadow: rgba(92, 132, 230, 0.4);
-        --quick-outline: #d7e5ff;
-      }
-      .quick-link-discord {
-        --quick-top: #cfd3ff;
-        --quick-bottom: #7f8cff;
-        --quick-border: #eef0ff;
-        --quick-text: #1f2455;
-        --quick-shadow: rgba(88, 102, 242, 0.32);
-        --quick-hover-border: #ffffff;
-        --quick-hover-shadow: rgba(88, 102, 242, 0.42);
-        --quick-outline: #d8ddff;
-      }
-      .quick-link-support {
-        --quick-top: #bcfff4;
-        --quick-bottom: #5dc9ff;
-        --quick-border: #e2fffb;
-        --quick-text: #07293f;
-        --quick-shadow: rgba(41, 169, 213, 0.38);
-        --quick-hover-border: #ffffff;
-        --quick-hover-shadow: rgba(52, 174, 236, 0.46);
-        --quick-outline: #bffff7;
-      }
-      .quick-link-uptime {
-        --quick-top: #b8ffd7;
-        --quick-bottom: #42c39a;
-        --quick-border: #ddffea;
-        --quick-text: #07281c;
-        --quick-shadow: rgba(39, 159, 112, 0.34);
-        --quick-hover-border: #f3fff8;
-        --quick-hover-shadow: rgba(45, 177, 132, 0.42);
-        --quick-outline: #cbffe1;
-      }
-      .quick-link:hover {
-        border-color: var(--quick-hover-border);
-        box-shadow: 0 18px 34px var(--quick-hover-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.14);
-        transform: translateY(-2px) scale(1.01);
-      }
-      .quick-link:focus-visible {
-        outline: 2px solid var(--quick-outline);
-        outline-offset: 2px;
-      }
-      .brand-line {
-        margin: 0;
-        font-size: 0.78rem;
-        color: #a99ed0;
-      }
-      .grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 0.8rem;
-      }
-      .stack {
-        display: grid;
-        gap: 0.65rem;
-      }
-      .pane {
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 0.85rem;
-        background: rgba(255, 255, 255, 0.015);
-      }
-      label {
-        display: grid;
-        gap: 0.3rem;
-        font-size: 0.88rem;
-        font-weight: 500;
-        color: #d5ccf3;
+      .field:focus-within .field-label {
+        color: var(--border-focus);
       }
       input {
         width: 100%;
-        border: 1px solid #3a3267;
-        border-radius: 9px;
-        background: #0d0a1f;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
         color: var(--text);
-        padding: 0.58rem 0.68rem;
-        font-size: 0.9rem;
+        font-family: var(--font-ui);
+        font-size: 0.9375rem;
+        padding: 10px var(--space-md);
+        min-height: 44px;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        appearance: none;
+      }
+      input::placeholder {
+        color: oklch(58% 0.014 240);
       }
       input:focus {
         outline: none;
-        border-color: var(--accent);
-        box-shadow: 0 0 0 2px rgba(175, 116, 255, 0.22);
+        border-color: var(--border-focus);
+        box-shadow: 0 0 0 3px oklch(53% 0.12 235 / 0.22);
       }
-      .check {
+      input[readonly] {
+        color: var(--muted);
+        cursor: default;
+      }
+      .input-row {
+        position: relative;
         display: flex;
         align-items: center;
-        gap: 0.45rem;
-        font-weight: 600;
       }
-      .check input {
-        width: auto;
-        margin: 0;
+      .input-row input {
+        padding-right: 44px;
       }
-      .row {
+      .btn-reveal {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 44px;
+        height: 44px;
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem;
-      }
-      button {
-        border: 1px solid #3a3266;
-        border-radius: 10px;
-        background: #181333;
-        color: #e5ddff;
-        padding: 0.5rem 0.84rem;
-        font-weight: 700;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
         cursor: pointer;
-        transition: background .18s ease, border-color .18s ease;
+        color: var(--muted);
+        border-radius: 0 var(--radius-md) var(--radius-md) 0;
+        transition: color 0.15s ease;
+        padding: 0;
       }
-      button:hover {
-        border-color: #5b4f9b;
-        background: #21184b;
+      .btn-reveal:hover {
+        color: var(--label);
       }
-      .primary {
+      .btn-reveal:focus-visible {
+        outline: 2px solid var(--border-focus);
+        outline-offset: -2px;
+        border-radius: var(--radius-md);
+      }
+      .btn-reveal svg {
+        width: 16px;
+        height: 16px;
+        pointer-events: none;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px var(--space-md);
+        border-radius: var(--radius-md);
+        font-family: var(--font-ui);
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: var(--surface-raised);
+        color: var(--text);
+        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+        white-space: nowrap;
+        min-height: 44px;
+      }
+      .btn:hover:not(:disabled) {
+        background: oklch(21% 0.02 240);
+        border-color: oklch(34% 0.022 240);
+      }
+      .btn:focus-visible {
+        outline: 2px solid var(--border-focus);
+        outline-offset: 2px;
+      }
+      .btn:active:not(:disabled) {
+        transform: translateY(1px);
+        opacity: 0.85;
+      }
+      .btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      [hidden] { display: none !important; }
+      .btn-primary {
         background: var(--accent);
-        color: #1a1333;
         border-color: var(--accent);
+        color: var(--bg);
       }
-      .small {
-        margin: 0;
-        font-size: 0.83rem;
+      .btn-primary:hover:not(:disabled) {
+        background: var(--accent-hover);
+        border-color: var(--accent-hover);
+      }
+      .btn-ghost {
+        background: transparent;
+        border-color: transparent;
         color: var(--muted);
       }
-      .manifest-row {
-        display: grid;
-        gap: 0.45rem;
+      .btn-ghost:hover:not(:disabled) {
+        background: var(--surface);
+        border-color: var(--border-subtle);
+        color: var(--label);
       }
+      .btn-ghost.is-confirming {
+        color: var(--text);
+        border-color: var(--border);
+        background: var(--surface);
+      }
+      .form-actions,
       .manifest-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.45rem;
+        gap: var(--space-sm);
       }
       .status {
-        margin: 0;
-        min-height: 1.1rem;
-        font-size: 0.83rem;
+        font-size: 0.8125rem;
         color: var(--muted);
+        min-height: 1.25rem;
       }
       .good {
         color: var(--good);
       }
-      button:disabled {
-        cursor: not-allowed;
-        opacity: 0.45;
+      .page-footer {
+        padding-top: var(--space-lg);
+        border-top: 1px solid var(--border-subtle);
+      }
+      .support-links {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-xs) var(--space-md);
+      }
+      .support-label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: oklch(55% 0.014 240);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+      }
+      .support-link {
+        font-size: 0.8125rem;
+        color: var(--muted);
+        text-decoration: none;
+        transition: color 0.15s ease;
+      }
+      .support-link:hover {
+        color: var(--text);
+      }
+      .support-link:focus-visible {
+        outline: 2px solid var(--border-focus);
+        outline-offset: 2px;
+        border-radius: 2px;
+      }
+      .support-sep {
+        color: oklch(38% 0.014 240);
+        user-select: none;
+        font-size: 0.75rem;
+      }
+      @media (max-width: 540px) {
+        body {
+          padding: var(--space-lg) var(--space-md) var(--space-xl);
+        }
+        .setup-header h1 {
+          font-size: 1.3rem;
+        }
+        .form-actions,
+        .manifest-actions {
+          flex-direction: column;
+        }
+        .btn {
+          width: 100%;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
+      }
+      @keyframes slide-up {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes manifest-flash {
+        0% { border-color: var(--border); }
+        45% { border-color: var(--border-focus); }
+        100% { border-color: var(--border); }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .page-header {
+          animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        .setup-panel {
+          animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+        }
+        .page-footer {
+          animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) 160ms both;
+        }
+        #statusText {
+          transition: opacity 0.15s ease;
+        }
+        .manifest-section.is-filled #manifestUrl {
+          animation: manifest-flash 0.7s ease both;
+        }
       }
     </style>
   </head>
   <body>
     <main class="shell">
-      <section class="card">
-        <section class="hero">
-          <div class="brand-head">
-            <img class="brand-mark" src="https://ibbylabs.dev/favicon.svg" alt="IbbyLabs" />
-            <p class="brand-name">IbbyLabs TikTok Stream Relay</p>
-          </div>
-          <p class="eyebrow">TikTok Stream Relay for Eclipse</p>
-          <h1>Find TikTok Audio in Eclipse</h1>
-          <p class="lead">Generate your Manifest URL to enable TikTok audio discovery and playback inside Eclipse.</p>
-          <div class="quick-links">
-            <a class="quick-link quick-link-eclipse" href="https://eclipsemusic.app" target="_blank" rel="noopener noreferrer"><span class="quick-link-icon" aria-hidden="true"><img src="https://eclipsemusic.app/configure/icon" alt="" /></span><span>Visit Eclipse</span></a>
-            <a class="quick-link quick-link-discord" href="https://discord.gg/yKM74spK3Q" target="_blank" rel="noopener noreferrer"><span class="quick-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.317 4.369A19.791 19.791 0 0 0 15.885 3c-.191.328-.403.77-.553 1.116a18.27 18.27 0 0 0-6.664 0A12.64 12.64 0 0 0 8.114 3a19.736 19.736 0 0 0-4.432 1.369C.883 8.58.127 12.686.505 16.735a19.9 19.9 0 0 0 5.993 3.03 14.24 14.24 0 0 0 1.284-2.11 12.925 12.925 0 0 1-2.021-.973c.17-.124.336-.255.496-.389a14.097 14.097 0 0 0 11.486 0c.161.134.327.265.497.389-.645.379-1.323.704-2.022.973.37.75.8 1.456 1.284 2.11a19.873 19.873 0 0 0 5.993-3.03c.444-4.696-.759-8.765-3.178-12.366ZM9.813 14.248c-1.181 0-2.149-1.085-2.149-2.419s.95-2.418 2.149-2.418c1.2 0 2.168 1.093 2.149 2.418 0 1.334-.95 2.419-2.149 2.419Zm4.374 0c-1.181 0-2.149-1.085-2.149-2.419s.95-2.418 2.149-2.418c1.2 0 2.168 1.093 2.149 2.418 0 1.334-.949 2.419-2.149 2.419Z"/></svg></span><span>Eclipse Discord</span></a>
-            <a class="quick-link quick-link-repo" href="https://github.com/IbbyLabs/tiktok-stream-relay" target="_blank" rel="noopener noreferrer"><span class="quick-link-icon" aria-hidden="true"><img src="https://github.githubassets.com/favicons/favicon.svg" alt="" /></span><span>View Repo</span></a>
-            <a class="quick-link quick-link-support" href="https://kofi.ibbylabs.dev" target="_blank" rel="noopener noreferrer"><span class="quick-link-icon" aria-hidden="true"><img src="https://storage.ko-fi.com/cdn/logomarkLogo.png" alt="" /></span><span>Support Me</span></a>
-            <a class="quick-link quick-link-uptime" href="https://uptime.ibbylabs.dev" target="_blank" rel="noopener noreferrer"><span class="quick-link-icon" aria-hidden="true"><img src="https://uptime.ibbylabs.dev/favicon.png" alt="" /></span><span>Uptime Tracker</span></a>
-          </div>
-        </section>
+      <header class="page-header">
+        <img class="brand-icon" src="https://ibbylabs.dev/favicon.svg" alt="IbbyLabs" fetchpriority="low" width="34" height="34" />
+        <div>
+          <p class="brand-name">TikTok Stream Relay</p>
+          <p class="brand-sub">by IbbyLabs &middot; for Eclipse</p>
+        </div>
+      </header>
 
-        <div class="grid">
-          <section class="pane stack">
-            <form id="config-form" class="stack">
-              <label>Torbox API Key
-                <input id="torboxToken" placeholder="Paste your Torbox API Key" />
-              </label>
-              <div class="row">
-                <button class="primary" type="submit">Generate Link</button>
-                <button id="clearSavedKey" type="button">Clear Saved Key</button>
-              </div>
-            </form>
+      <section class="setup-panel">
+        <div class="setup-header">
+          <h1>Get your Manifest URL</h1>
+          <p>Enter your Torbox API Key, generate a link, and copy the Manifest URL into Eclipse.</p>
+        </div>
 
-            <div class="manifest-row">
-              <label>Manifest URL
-                <input id="manifestUrl" placeholder="Generate Link to fill this field" readonly />
-              </label>
-              <div class="manifest-actions">
-                <button id="copyManifest" type="button" disabled>Copy Manifest URL</button>
-                <button id="openManifest" type="button" disabled>Open Manifest</button>
-              </div>
-              <p class="status" id="statusText">Waiting for your Torbox API Key.</p>
-              <p class="small">Paste Torbox API Key, click Generate Link, then copy Manifest URL into Eclipse.</p>
+        <div class="section-divider" aria-hidden="true"></div>
+
+        <form id="config-form" class="config-form">
+          <div class="field">
+            <label for="torboxToken" class="field-label">Torbox API Key</label>
+            <div class="input-row">
+              <input id="torboxToken" type="password" placeholder="" autocomplete="current-password" autocorrect="off" autocapitalize="none" spellcheck="false" />
+              <button class="btn-reveal" id="revealToken" type="button" aria-label="Show API key" aria-pressed="false">
+                <svg id="iconShow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg id="iconHide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
             </div>
-          </section>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Generate Link</button>
+            <button class="btn btn-ghost" id="clearSavedKey" type="button" hidden>Clear Saved Key</button>
+          </div>
+        </form>
+
+        <div class="section-divider" aria-hidden="true"></div>
+
+        <div class="manifest-section">
+          <label class="field">
+            <span class="field-label">Manifest URL</span>
+            <input id="manifestUrl" placeholder="Your Manifest URL will appear here" readonly />
+          </label>
+          <div class="manifest-actions">
+            <button class="btn" id="copyManifest" type="button" disabled>Copy Manifest URL</button>
+            <button class="btn" id="openManifest" type="button" disabled>Open Manifest</button>
+          </div>
+          <p class="status" id="statusText" role="status">Enter your Torbox API Key above to get started.</p>
         </div>
       </section>
+
+      <footer class="page-footer">
+        <nav class="support-links" aria-label="Resources">
+          <span class="support-label">Links</span>
+          <a class="support-link" href="https://eclipsemusic.app" target="_blank" rel="noopener noreferrer">Eclipse</a>
+          <span class="support-sep" aria-hidden="true">&middot;</span>
+          <a class="support-link" href="https://discord.gg/yKM74spK3Q" target="_blank" rel="noopener noreferrer">Discord</a>
+          <span class="support-sep" aria-hidden="true">&middot;</span>
+          <a class="support-link" href="https://github.com/IbbyLabs/tiktok-stream-relay" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <span class="support-sep" aria-hidden="true">&middot;</span>
+          <a class="support-link" href="https://kofi.ibbylabs.dev" target="_blank" rel="noopener noreferrer">Support me</a>
+          <span class="support-sep" aria-hidden="true">&middot;</span>
+          <a class="support-link" href="https://uptime.ibbylabs.dev" target="_blank" rel="noopener noreferrer">Uptime</a>
+        </nav>
+      </footer>
     </main>
     <script>
       const form = document.getElementById("config-form");
@@ -794,16 +836,38 @@ export function createApp(args: {
       const openManifest = byId("openManifest");
       const manifestUrl = byId("manifestUrl");
       const torboxTokenInput = byId("torboxToken");
+      const revealToken = byId("revealToken");
+      const iconShow = byId("iconShow");
+      const iconHide = byId("iconHide");
       const clearSavedKey = byId("clearSavedKey");
       const torboxStorageKey = "tiktokEclipseTorboxToken";
 
-      const setStatus = (message, isGood = false) => {
-        statusText.textContent = message;
-        if (isGood) {
-          statusText.classList.add("good");
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let statusTimer = null;
+      const setStatus = (message, isGood = false, linkText = null, linkHref = null) => {
+        const render = () => {
+          statusText.textContent = message;
+          statusText.classList.toggle("good", isGood);
+          if (linkText && linkHref) {
+            const a = document.createElement("a");
+            a.href = linkHref;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            a.textContent = linkText;
+            a.style.cssText = "color:inherit;text-decoration:underline;text-underline-offset:2px;margin-left:4px;";
+            statusText.appendChild(a);
+          }
+        };
+        if (prefersReducedMotion) {
+          render();
           return;
         }
-        statusText.classList.remove("good");
+        clearTimeout(statusTimer);
+        statusText.style.opacity = "0";
+        statusTimer = setTimeout(() => {
+          render();
+          statusText.style.opacity = "1";
+        }, 150);
       };
 
       const setManifestState = (url) => {
@@ -811,6 +875,17 @@ export function createApp(args: {
         const hasUrl = url.length > 0;
         copyManifest.disabled = !hasUrl;
         openManifest.disabled = !hasUrl;
+        const section = manifestUrl.closest(".manifest-section");
+        if (section) {
+          section.classList.remove("is-filled");
+          if (hasUrl) {
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                section.classList.add("is-filled");
+              });
+            });
+          }
+        }
       };
 
       const saveTokenToStorage = (token) => {
@@ -832,7 +907,8 @@ export function createApp(args: {
             return;
           }
           torboxTokenInput.value = saved;
-          setStatus("Saved Torbox API Key loaded.", true);
+          clearSavedKey.hidden = false;
+          setStatus("Saved key loaded.", true);
         } catch {
           setStatus("Could not read saved key in this browser.");
         }
@@ -841,14 +917,42 @@ export function createApp(args: {
       setManifestState("");
       restoreTokenFromStorage();
 
+      revealToken.addEventListener("click", () => {
+        const isShowing = torboxTokenInput.type === "text";
+        torboxTokenInput.type = isShowing ? "password" : "text";
+        revealToken.setAttribute("aria-pressed", String(!isShowing));
+        revealToken.setAttribute("aria-label", isShowing ? "Show API key" : "Hide API key");
+        iconShow.style.display = isShowing ? "" : "none";
+        iconHide.style.display = isShowing ? "none" : "";
+      });
+
       torboxTokenInput.addEventListener("input", () => {
-        saveTokenToStorage(torboxTokenInput.value.trim());
+        const trimmed = torboxTokenInput.value.trim();
+        saveTokenToStorage(trimmed);
+        clearSavedKey.hidden = !trimmed;
       });
 
       clearSavedKey.addEventListener("click", () => {
+        if (clearSavedKey.dataset.confirm !== "1") {
+          clearSavedKey.dataset.confirm = "1";
+          clearSavedKey.textContent = "Confirm Clear";
+          clearSavedKey.classList.add("is-confirming");
+          setTimeout(() => {
+            if (clearSavedKey.dataset.confirm === "1") {
+              clearSavedKey.dataset.confirm = "0";
+              clearSavedKey.textContent = "Clear Saved Key";
+              clearSavedKey.classList.remove("is-confirming");
+            }
+          }, 3000);
+          return;
+        }
+        clearSavedKey.dataset.confirm = "0";
+        clearSavedKey.textContent = "Clear Saved Key";
+        clearSavedKey.classList.remove("is-confirming");
+        clearSavedKey.hidden = true;
         saveTokenToStorage("");
         torboxTokenInput.value = "";
-        setStatus("Saved Torbox API Key cleared.");
+        setStatus("Key cleared.");
         setManifestState("");
       });
 
@@ -856,41 +960,50 @@ export function createApp(args: {
         event.preventDefault();
         const token = torboxTokenInput.value.trim();
         if (!token) {
-          setStatus("Torbox API Key is required.");
+          setStatus("Enter your API Key to continue.");
           setManifestState("");
           return;
         }
 
         saveTokenToStorage(token);
 
-        setStatus("Generating link...");
-        const res = await fetch("/api/config/create", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            debridEnabled: true,
-            torboxToken: token,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          const errorCode = data && data.error ? String(data.error) : "";
-          const friendly = errorCode === "invalid_torbox_token"
-            ? "Torbox API Key looks invalid."
-            : errorCode === "unsafe_config_missing_debrid_tokens"
-              ? "Torbox API Key is required."
-              : "Could not generate link.";
-          setStatus(friendly);
-          setManifestState("");
-          return;
-        }
+        const submitBtn = form.querySelector('[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Generating...";
+        setStatus("Generating your link...");
 
-        const addonUrl = data && typeof data.addonUrl === "string" ? data.addonUrl : "";
-        const absoluteManifest = addonUrl.startsWith("http")
-          ? addonUrl
-          : window.location.origin + addonUrl;
-        setManifestState(absoluteManifest);
-        setStatus("Link ready. Copy your Manifest URL into Eclipse.", true);
+        try {
+          const res = await fetch("/api/config/create", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              debridEnabled: true,
+              torboxToken: token,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            const errorCode = data && data.error ? String(data.error) : "";
+            const friendly = errorCode === "invalid_torbox_token"
+              ? ["That key wasn't accepted.", false, "Open Torbox", "https://app.torbox.app/settings/api"]
+              : errorCode === "unsafe_config_missing_debrid_tokens"
+                ? ["Enter your API Key to continue.", false, null, null]
+                : ["Could not generate a link. Try again.", false, null, null];
+            setStatus(friendly[0], friendly[1], friendly[2], friendly[3]);
+            setManifestState("");
+            return;
+          }
+
+          const addonUrl = data && typeof data.addonUrl === "string" ? data.addonUrl : "";
+          const absoluteManifest = addonUrl.startsWith("http")
+            ? addonUrl
+            : window.location.origin + addonUrl;
+          setManifestState(absoluteManifest);
+          setStatus("Done. Copy the Manifest URL into Eclipse.", true);
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Generate Link";
+        }
       });
 
       copyManifest.addEventListener("click", async () => {
@@ -914,11 +1027,17 @@ export function createApp(args: {
               throw new Error("copy_failed");
             }
           }
-          setStatus("Manifest URL copied. Paste it in Eclipse.", true);
+          setStatus("Copied. Paste the URL into Eclipse.", true);
         } catch {
           manifestUrl.focus();
           manifestUrl.select();
-          setStatus("Copy failed. URL selected. Press Cmd+C to copy.");
+          setStatus("Copy failed. Select the URL and use Ctrl+C / Cmd+C.");
+        }
+      });
+
+      manifestUrl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && manifestUrl.value) {
+          copyManifest.click();
         }
       });
 
