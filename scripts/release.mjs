@@ -47,7 +47,7 @@ run("npm", ["test"]);
 run("npm", ["run", "build"]);
 
 if (dryRun) {
-  console.log(`Dry run: would bump ${level}, sync manifest and README, update CHANGELOG.md, commit release, tag, and push.`);
+  console.log(`Dry run: would bump ${level}, sync manifest and README, update CHANGELOG.md, commit release, tag, and push the tag.`);
   process.exit(0);
 }
 
@@ -60,4 +60,4 @@ run("node", ["scripts/update-changelog.mjs"]);
 run("git", ["add", "package.json", "package-lock.json", "manifest.json", "README.md", "CHANGELOG.md"]);
 run("git", ["commit", "-m", `chore(release): v${version}`]);
 run("git", ["tag", `v${version}`]);
-run("git", ["push", "origin", "HEAD", "--follow-tags"]);
+run("git", ["push", "origin", "HEAD", `refs/tags/v${version}`]);
