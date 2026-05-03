@@ -220,6 +220,7 @@ http://localhost:3000/addon/<token>/manifest.json
 - `GET /artist/:id`
 - `GET /playlist/:id`
 - `GET /stream/:id?url=<tiktok-url>&format=<mp3|aac|flac|m4a|wav|ogg>`
+- `GET /media/:fileName`
 - `GET /cache/stats`
 - `GET /configure`
 - `POST /api/config/preview`
@@ -255,6 +256,16 @@ Every stream response includes a `quality` field that describes what you are act
 | `transcoded_standard` | Local ffmpeg transcode to mp3, aac, m4a, or ogg. |
 | `transcoded_lossless_container` | Local ffmpeg transcode to flac or wav. |
 
+### Stream response fields
+
+| Field | Type | When present |
+|---|---|---|
+| `url` | string | Always — playable media URL. |
+| `format` | string | Always — resolved format (mp3, aac, etc.). |
+| `quality` | string | Always — one of the quality values above. |
+| `provider` | string | Debrid responses only — identifies the stream source. |
+| `expiresAt` | number | When the source provides an expiry — Unix timestamp in seconds. |
+
 **Important caveat for TikTok sources**: TikTok stores audio as lossy compressed streams (typically AAC at variable bitrate). Requesting `flac` or `wav` produces a lossless container but the audio content is still derived from a lossy source. The `transcoded_lossless_container` label accurately describes the container and codec used, not the original recording quality.
 
 ### Operator cost notes
@@ -274,6 +285,8 @@ Albums, artists, and playlists returned by this addon are derived from TikTok se
 Because groups are derived from search results, detail pages (`/album/:id`, `/artist/:id`, `/playlist/:id`) are stable for approximately 10 minutes after the search that produced them. A fresh search for the same query refreshes the detail pages.
 
 Grouping is normalized: minor differences in casing or whitespace in artist or title names may produce separate groups rather than merging entries.
+
+Album and playlist detail responses include a `description` field. Album descriptions follow the pattern `TikTok sounds by <artist>`. Playlist descriptions are `Trending sounds on TikTok` for the trending playlist or `TikTok sounds matching "<query>"` for keyword playlists.
 
 ## Public Config Portal
 
@@ -298,6 +311,7 @@ curl -s "http://localhost:3000/stream/<track-id>?addonToken=<token>"
 - Metrics and events are available at:
    - `GET /public/metrics`
    - `GET /public/events`
+   - `GET /public/events?limit=<n>` — optional, cap the number of returned entries (1 to 500, default 50).
 - Both telemetry endpoints require `x-admin-token` to match `ADMIN_TELEMETRY_TOKEN`.
 - In public launch mode (`PUBLIC_LAUNCH_MODE=true`), the service requires secure values for:
    - `ADDON_LINK_SIGNING_KEYS`
@@ -320,7 +334,7 @@ Standalone flow:
 
 1. Replace `{{ env "TEMPLATE_TIKTOK_STREAM_RELAY_HOSTNAME" }}` with your public host.
 2. Copy the same rules into your Authelia `access_control` section before broad one_factor or two_factor rules.
-3. Keep media routes (`/manifest.json`, `/addon/*/manifest.json`, `/search`, `/stream`) on bypass and protect the rest with your default policy.
+3. Keep media routes (`/manifest.json`, `/addon/*/manifest.json`, `/search`, `/stream`, `/media`) on bypass and protect the rest with your default policy.
 
 Authelia is optional. Both compose paths still run without it.
 

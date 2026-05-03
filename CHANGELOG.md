@@ -16,8 +16,6 @@
   - Search results no longer expose internal stream URLs
   - Album and artist pages now load correctly when opened immediately
     after a search, without needing a second network round trip
-  - Tracks now include their ISRC code where available, which lets Eclipse
-    pull in high quality artwork, lyrics, and genre info from Apple Music
   - Stream URLs now include an expiry timestamp when the source provides one
 * add hybrid catalog support
   

@@ -17,6 +17,7 @@ access_control:
         - '^/addon/.+/manifest\.json$'
         - '^/search$'
         - '^/stream(?:/.*)?$'
+        - '^/media(?:/.*)?$'
         - '^/health$'
         - '^/public/(?:metrics|events)$'
     - domain: '{{ env "TEMPLATE_TIKTOK_STREAM_RELAY_HOSTNAME" }}'
