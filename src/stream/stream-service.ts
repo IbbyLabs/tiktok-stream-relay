@@ -92,11 +92,15 @@ export function extractPlayableUrlsFromPageHtml(html: string): string[] {
       const audioPlayMatches = [...raw.matchAll(/"playUrl":"(https:[^"]*mime_type=audio_mpeg[^"]*)"/g)].map((entry) =>
         decodeUrl(entry[1]),
       );
+      const musicCdnMatches = [...raw.matchAll(/"playUrl":"(https:[^"]+)"/g)]
+        .map((entry) => decodeUrl(entry[1]))
+        .filter((url) => !url.includes("mime_type=audio_mpeg"));
 
       const ordered = [
         ...playAddrMatches,
         ...downloadAddrMatches,
         ...audioPlayMatches,
+        ...musicCdnMatches,
       ];
 
       const unique = [...new Set(ordered.filter((value) => value.startsWith("https://")))];
