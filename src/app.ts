@@ -409,7 +409,7 @@ export function createApp(args: {
   });
 
   const sendManifest = (response: express.Response): void => {
-    response.sendFile(args.manifestPath);
+    response.sendFile(path.basename(args.manifestPath), { root: path.dirname(args.manifestPath) });
   };
 
   const verifyAddonTokenForManifest = (
@@ -1247,7 +1247,7 @@ export function createApp(args: {
       return;
     }
     response.setHeader("content-type", contentTypeForFile(filePath));
-    response.sendFile(filePath);
+    response.sendFile(path.basename(filePath), { root: path.dirname(filePath) });
   });
 
   const handleSearchRequest = async (
