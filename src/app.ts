@@ -333,6 +333,7 @@ export function createApp(args: {
   adminTelemetryToken?: string;
 }): Express {
   const app = express();
+  app.set("trust proxy", 1);
   const hasAddonServices = Boolean(args.addonLinkStore && args.linkTokenService);
 
   app.use((request, response, next) => {
