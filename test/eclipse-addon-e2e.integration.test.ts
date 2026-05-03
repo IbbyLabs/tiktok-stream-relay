@@ -15,10 +15,36 @@ interface SearchTrackPayload {
   artist: string;
   duration: number;
   artworkURL: string;
+  streamURL: string;
+}
+
+interface SearchAlbumPayload {
+  id: string;
+  title: string;
+  artist: string;
+  artworkURL: string;
+  trackCount: number;
+}
+
+interface SearchArtistPayload {
+  id: string;
+  name: string;
+  artworkURL: string;
+}
+
+interface SearchPlaylistPayload {
+  id: string;
+  title: string;
+  creator: string;
+  artworkURL?: string;
+  trackCount: number;
 }
 
 interface SearchPayload {
   tracks: SearchTrackPayload[];
+  albums?: SearchAlbumPayload[];
+  artists?: SearchArtistPayload[];
+  playlists?: SearchPlaylistPayload[];
   hasMore: boolean;
   nextCursor?: string;
   partial?: boolean;
@@ -100,7 +126,10 @@ test("eclipse addon flow supports search to playable audio response", async () =
     assert.equal(searchBody.tracks[0].title, track.title);
     assert.equal(searchBody.tracks[0].artist, track.artist);
     assert.equal(searchBody.hasMore, false);
-    assert.equal((searchBody.tracks[0] as Record<string, unknown>).streamURL, undefined);
+    assert.equal(searchBody.tracks[0].streamURL, sourceUrl);
+    assert.equal(Array.isArray(searchBody.albums), true);
+    assert.equal(Array.isArray(searchBody.artists), true);
+    assert.equal(Array.isArray(searchBody.playlists), true);
 
     const streamResponse = await fetch(`${baseUrl}/stream/${searchBody.tracks[0].id}`);
     assert.equal(streamResponse.status, 200);
@@ -221,6 +250,134 @@ test("search pagination returns next cursor and follow-up page", async () => {
     assert.equal(page2Body.tracks.length, 1);
     assert.equal(page2Body.tracks[0].title, "second");
     assert.equal(page2Body.hasMore, false);
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      });
+    });
+  }
+});
+
+test("hybrid catalog endpoints resolve album artist and playlist details", async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "ibbylabs-stream-relay-catalog-"));
+  const manifestPath = path.join(tempDir, "manifest.json");
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify({
+      id: "com.ibby.tiktok-stream-relay",
+      name: "IbbyLabs TikTok Stream Relay",
+      version: "0.3.0",
+      resources: ["search", "stream", "catalog"],
+      types: ["track", "album", "artist", "playlist"],
+      contentType: "music",
+    }),
+    "utf-8"
+  );
+
+  const baseTracks: NormalizedTrack[] = [
+    {
+      id: "video:1",
+      title: "Song A",
+      artist: "Artist A",
+      duration: 180,
+      artworkURL: "https://example.com/a.jpg",
+      streamURL: "https://www.tiktok.com/@u/video/1",
+    },
+    {
+      id: "video:2",
+      title: "Song A",
+      artist: "Artist A",
+      duration: 181,
+      artworkURL: "https://example.com/a.jpg",
+      streamURL: "https://www.tiktok.com/@u/video/2",
+    },
+  ];
+
+  const app = createApp({
+    manifestPath,
+    config: {
+      debridEnabled: true,
+      streamCacheMaxBytes: 1024 * 1024,
+      liveSearchMaxResults: 36,
+      searchMaxLimit: 60,
+    },
+    settingsStore: {
+      get: () => ({ debridEnabled: false }),
+      save: () => ({ debridEnabled: false }),
+    },
+    searchService: {
+      search: async () => baseTracks,
+      searchPage: async () => ({ tracks: baseTracks, hasMore: false }),
+    },
+    streamService: {
+      resolve: async () => ({
+        type: "url",
+        url: "https://cdn.example.com/stream.mp3",
+        provider: "torbox",
+      }),
+    },
+    memoryCache: new MemoryCache<SearchPage>(60_000, 10),
+    diskCache: new DiskCache<SearchPage>(path.join(tempDir, "search-cache"), 60_000),
+    streamCache: new StreamCache(path.join(tempDir, "stream-cache")),
+  });
+
+  const server = app.listen(0);
+  try {
+    await new Promise<void>((resolve) => server.once("listening", () => resolve()));
+    const address = server.address();
+    if (!address || typeof address === "string") {
+      throw new Error("server_address_unavailable");
+    }
+
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+    const searchResponse = await fetch(`${baseUrl}/search?q=song%20a`);
+    assert.equal(searchResponse.status, 200);
+    const searchBody = (await searchResponse.json()) as SearchPayload;
+    assert.equal((searchBody.albums ?? []).length > 0, true);
+    assert.equal((searchBody.artists ?? []).length > 0, true);
+    assert.equal((searchBody.playlists ?? []).length > 0, true);
+
+    const albumResponse = await fetch(`${baseUrl}/album/${encodeURIComponent(searchBody.albums![0].id)}`);
+    assert.equal(albumResponse.status, 200);
+    const albumBody = (await albumResponse.json()) as {
+      id: string;
+      title: string;
+      tracks: SearchTrackPayload[];
+    };
+    assert.equal(albumBody.id, searchBody.albums![0].id);
+    assert.equal(albumBody.title, "Song A");
+    assert.equal(albumBody.tracks.length, 2);
+
+    const artistResponse = await fetch(`${baseUrl}/artist/${encodeURIComponent(searchBody.artists![0].id)}`);
+    assert.equal(artistResponse.status, 200);
+    const artistBody = (await artistResponse.json()) as {
+      id: string;
+      name: string;
+      topTracks: SearchTrackPayload[];
+      albums: SearchAlbumPayload[];
+    };
+    assert.equal(artistBody.id, searchBody.artists![0].id);
+    assert.equal(artistBody.name, "Artist A");
+    assert.equal(artistBody.topTracks.length, 2);
+    assert.equal(artistBody.albums.length > 0, true);
+
+    const playlistResponse = await fetch(
+      `${baseUrl}/playlist/${encodeURIComponent(searchBody.playlists![0].id)}`,
+    );
+    assert.equal(playlistResponse.status, 200);
+    const playlistBody = (await playlistResponse.json()) as {
+      id: string;
+      title: string;
+      tracks: SearchTrackPayload[];
+    };
+    assert.equal(playlistBody.id, searchBody.playlists![0].id);
+    assert.equal(playlistBody.tracks.length, 2);
+    assert.equal(playlistBody.title.startsWith("TikTok Mix:"), true);
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((error) => {

@@ -1,6 +1,14 @@
 import express, { type Express } from "express";
 import path from "node:path";
 import { AddonConfigInput } from "./addon/types.js";
+import {
+  buildHybridCatalogSearchResult,
+  decodeAlbumIdToQuery,
+  decodeArtistIdToQuery,
+  decodePlaylistIdToQuery,
+  findAlbumGroupById,
+  findArtistGroupById,
+} from "./catalog/hybrid-catalog.js";
 import { applyConfigDefaults, validateConfigSafety } from "./addon/config-policy.js";
 import { DiskCache } from "./cache/disk-cache.js";
 import { MemoryCache } from "./cache/memory-cache.js";
@@ -119,6 +127,17 @@ function decodeTrackId(trackId: string): string | null {
   }
 }
 
+function readRouteParam(request: express.Request, name: string): string {
+  const param = request.params[name];
+  if (typeof param === "string") {
+    return param;
+  }
+  if (Array.isArray(param) && typeof param[0] === "string") {
+    return param[0];
+  }
+  return "";
+}
+
 function contentTypeForFile(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
   return ext === ".aac" ? "audio/aac" : ext === ".flac" ? "audio/flac" : "audio/mpeg";
@@ -168,6 +187,26 @@ function parseSearchLimit(raw: unknown, fallback: number, max: number): number {
   }
 
   return Math.min(Math.floor(parsed), max);
+}
+
+function toTrackResponse(track: NormalizedTrack): {
+  id: string;
+  title: string;
+  artist: string;
+  duration: number;
+  artworkURL: string;
+  streamURL: string;
+  format: string;
+} {
+  return {
+    id: encodeTrackId(track.streamURL),
+    title: track.title,
+    artist: track.artist,
+    duration: track.duration,
+    artworkURL: track.artworkURL,
+    streamURL: track.streamURL,
+    format: "mp3",
+  };
 }
 
 function parseConfigInput(body: unknown): AddonConfigInput {
@@ -1231,15 +1270,13 @@ export function createApp(args: {
         cursor,
       });
 
+      const catalog = buildHybridCatalogSearchResult(normalizedQuery, page.tracks);
+
       response.status(200).json({
-        tracks: page.tracks.map((track) => ({
-          id: encodeTrackId(track.streamURL),
-          title: track.title,
-          artist: track.artist,
-          duration: track.duration,
-          artworkURL: track.artworkURL,
-          format: "mp3",
-        })),
+        tracks: page.tracks.map(toTrackResponse),
+        albums: catalog.albums,
+        artists: catalog.artists,
+        playlists: catalog.playlists,
         hasMore: page.hasMore,
         nextCursor:
           page.hasMore && typeof page.nextCursor === "number"
@@ -1263,6 +1300,139 @@ export function createApp(args: {
 
   app.get("/addon/:addonToken/search", (request, response) => {
     void handleSearchRequest(request, response);
+  });
+
+  const handleAlbumRequest = async (
+    request: express.Request,
+    response: express.Response,
+  ): Promise<void> => {
+    try {
+      const albumId = readRouteParam(request, "id");
+      const query = decodeAlbumIdToQuery(albumId);
+      if (!query) {
+        throw new HttpError(400, "invalid_catalog_id");
+      }
+
+      const page = await args.searchService.searchPage({
+        query,
+        limit: args.config.searchMaxLimit,
+      });
+      const album = findAlbumGroupById(albumId, page.tracks);
+      if (!album) {
+        throw new HttpError(404, "catalog_not_found");
+      }
+
+      response.status(200).json({
+        id: album.id,
+        title: album.title,
+        artist: album.artist,
+        artworkURL: album.artworkURL,
+        trackCount: album.tracks.length,
+        tracks: album.tracks.map(toTrackResponse),
+      });
+    } catch (error) {
+      if (error instanceof HttpError) {
+        response.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+
+      response.status(500).json({ error: "catalog_failed" });
+    }
+  };
+
+  app.get("/album/:id", (request, response) => {
+    void handleAlbumRequest(request, response);
+  });
+
+  app.get("/addon/:addonToken/album/:id", (request, response) => {
+    void handleAlbumRequest(request, response);
+  });
+
+  const handleArtistRequest = async (
+    request: express.Request,
+    response: express.Response,
+  ): Promise<void> => {
+    try {
+      const artistId = readRouteParam(request, "id");
+      const query = decodeArtistIdToQuery(artistId);
+      if (!query) {
+        throw new HttpError(400, "invalid_catalog_id");
+      }
+
+      const page = await args.searchService.searchPage({
+        query,
+        limit: args.config.searchMaxLimit,
+      });
+      const artist = findArtistGroupById(artistId, page.tracks);
+      if (!artist) {
+        throw new HttpError(404, "catalog_not_found");
+      }
+
+      const artistCatalog = buildHybridCatalogSearchResult(query, artist.tracks);
+      response.status(200).json({
+        id: artist.id,
+        name: artist.name,
+        artworkURL: artist.artworkURL,
+        topTracks: artist.tracks.map(toTrackResponse),
+        albums: artistCatalog.albums,
+      });
+    } catch (error) {
+      if (error instanceof HttpError) {
+        response.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+
+      response.status(500).json({ error: "catalog_failed" });
+    }
+  };
+
+  app.get("/artist/:id", (request, response) => {
+    void handleArtistRequest(request, response);
+  });
+
+  app.get("/addon/:addonToken/artist/:id", (request, response) => {
+    void handleArtistRequest(request, response);
+  });
+
+  const handlePlaylistRequest = async (
+    request: express.Request,
+    response: express.Response,
+  ): Promise<void> => {
+    try {
+      const playlistId = readRouteParam(request, "id");
+      const query = decodePlaylistIdToQuery(playlistId);
+      if (!query) {
+        throw new HttpError(400, "invalid_catalog_id");
+      }
+
+      const page = await args.searchService.searchPage({
+        query,
+        limit: args.config.searchMaxLimit,
+      });
+
+      response.status(200).json({
+        id: playlistId,
+        title: query === "trending" ? "TikTok Trending" : `TikTok Mix: ${query}`,
+        creator: "IbbyLabs",
+        artworkURL: page.tracks[0]?.artworkURL,
+        tracks: page.tracks.map(toTrackResponse),
+      });
+    } catch (error) {
+      if (error instanceof HttpError) {
+        response.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+
+      response.status(500).json({ error: "catalog_failed" });
+    }
+  };
+
+  app.get("/playlist/:id", (request, response) => {
+    void handlePlaylistRequest(request, response);
+  });
+
+  app.get("/addon/:addonToken/playlist/:id", (request, response) => {
+    void handlePlaylistRequest(request, response);
   });
 
   const handleStreamRequest = async (

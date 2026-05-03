@@ -189,7 +189,7 @@ GHCR pull examples:
 
 ```bash
 docker pull ghcr.io/ibbylabs/tiktok-stream-relay:latest
-docker pull ghcr.io/ibbylabs/tiktok-stream-relay:v0.2.0
+docker pull ghcr.io/ibbylabs/tiktok-stream-relay:v0.3.0
 ```
 
 ## Eclipse Addon URL
@@ -216,6 +216,9 @@ http://localhost:3000/addon/<token>/manifest.json
 - `GET /search?q=<query>&limit=<n>`
 - `GET /search?q=<query>&limit=<n>&cursor=<opaque-cursor>`
 - `GET /search?q=<query>&refresh=true`
+- `GET /album/:id`
+- `GET /artist/:id`
+- `GET /playlist/:id`
 - `GET /stream/:id?url=<tiktok-url>&format=mp3`
 - `GET /cache/stats`
 - `GET /configure`
