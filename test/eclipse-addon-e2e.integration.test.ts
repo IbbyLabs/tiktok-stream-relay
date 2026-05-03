@@ -368,10 +368,12 @@ test("hybrid catalog endpoints resolve album artist and playlist details", async
     const albumBody = (await albumResponse.json()) as {
       id: string;
       title: string;
+      description?: string;
       tracks: SearchTrackPayload[];
     };
     assert.equal(albumBody.id, searchBody.albums![0].id);
     assert.equal(albumBody.title, "Song A");
+    assert.equal(typeof albumBody.description, "string", "album detail must include description");
     assert.equal(albumBody.tracks.length, 2);
     assert.equal((albumBody.tracks[0] as Record<string, unknown>).streamURL, undefined, "streamURL must not appear in album track items");
 
@@ -396,12 +398,14 @@ test("hybrid catalog endpoints resolve album artist and playlist details", async
     const playlistBody = (await playlistResponse.json()) as {
       id: string;
       title: string;
+      description?: string;
       tracks: SearchTrackPayload[];
     };
     assert.equal(playlistBody.id, searchBody.playlists![0].id);
     assert.equal(playlistBody.tracks.length, 2);
     assert.equal((playlistBody.tracks[0] as Record<string, unknown>).streamURL, undefined, "streamURL must not appear in playlist track items");
     assert.equal(playlistBody.title.startsWith("TikTok Mix:"), true);
+    assert.equal(typeof playlistBody.description, "string", "playlist detail must include description");
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((error) => {

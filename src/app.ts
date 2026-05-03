@@ -1387,6 +1387,7 @@ export function createApp(args: {
         id: album.id,
         title: album.title,
         artist: album.artist,
+        description: `TikTok sounds by ${album.artist}`,
         artworkURL: album.artworkURL,
         trackCount: album.tracks.length,
         tracks: album.tracks.map(toTrackResponse),
@@ -1478,6 +1479,7 @@ export function createApp(args: {
       response.status(200).json({
         id: playlistId,
         title: query === "trending" ? "TikTok Trending" : `TikTok Mix: ${query}`,
+        description: query === "trending" ? "Trending sounds on TikTok" : `TikTok sounds matching "${query}"`,
         creator: "IbbyLabs",
         artworkURL: page.tracks[0]?.artworkURL,
         tracks: page.tracks.map(toTrackResponse),
