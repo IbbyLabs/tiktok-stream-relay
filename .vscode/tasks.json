@@ -1,0 +1,21 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "verify:tiktok-eclipse:test",
+			"type": "shell",
+			"command": "nocorrect rtk npm test",
+			"isBackground": false
+		},
+		{
+			"label": "verify:tiktok-eclipse",
+			"type": "shell",
+			"command": "zsh",
+			"args": [
+				"-lc",
+				"cd /Users/ibby/Applications/tiktok-eclipse && nocorrect pnpm run lint && nocorrect pnpm test && nocorrect pnpm run build"
+			],
+			"isBackground": false
+		}
+	]
+}

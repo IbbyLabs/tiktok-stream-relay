@@ -259,7 +259,7 @@ export class StreamService {
   public async resolve(args: ResolveArgs): Promise<StreamResolution> {
     let sourceUrl: string;
     const format = args.format ?? "mp3";
-    if (!["mp3", "aac", "flac"].includes(format)) {
+    if (!["mp3", "aac", "flac", "m4a", "wav", "ogg"].includes(format)) {
       throw new HttpError(400, "unsupported_audio_format");
     }
 

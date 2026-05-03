@@ -68,10 +68,14 @@ test("eclipse addon flow supports search to playable audio response", async () =
 
   const streamCache = new StreamCache(path.join(tempDir, "stream-cache"));
   const sourceUrl = "https://www.tiktok.com/@u/video/1234567890123456789";
-  const cacheKey = streamCache.keyFromUrl(sourceUrl, "mp3");
-  const audioPath = streamCache.createOutputPath(cacheKey, "mp3");
-  fs.writeFileSync(audioPath, "audio-bytes", "utf-8");
-  streamCache.set(cacheKey, audioPath, 60_000);
+  const outputByFormat: Record<string, string> = {};
+  for (const format of ["mp3", "aac", "flac", "m4a", "wav", "ogg"] as const) {
+    const cacheKey = streamCache.keyFromUrl(sourceUrl, format);
+    const audioPath = streamCache.createOutputPath(cacheKey, format);
+    fs.writeFileSync(audioPath, `audio-bytes-${format}`, "utf-8");
+    streamCache.set(cacheKey, audioPath, 60_000);
+    outputByFormat[format] = audioPath;
+  }
 
   const track: NormalizedTrack = {
     id: "track-1",
@@ -103,7 +107,7 @@ test("eclipse addon flow supports search to playable audio response", async () =
       searchPage: async () => ({ tracks: [track], hasMore: false } as SearchPage),
     },
     streamService: {
-      resolve: async () => ({ type: "file", filePath: audioPath }),
+      resolve: async (args) => ({ type: "file", filePath: outputByFormat[args.format ?? "mp3"] }),
     },
     memoryCache: new MemoryCache<SearchPage>(60_000, 10),
     diskCache: new DiskCache<SearchPage>(path.join(tempDir, "search-cache"), 60_000),
@@ -133,17 +137,32 @@ test("eclipse addon flow supports search to playable audio response", async () =
     assert.equal(Array.isArray(searchBody.artists), true);
     assert.equal(Array.isArray(searchBody.playlists), true);
 
-    const streamResponse = await fetch(`${baseUrl}/stream/${searchBody.tracks[0].id}`);
-    assert.equal(streamResponse.status, 200);
-    assert.equal(streamResponse.headers.get("content-type"), "application/json; charset=utf-8");
-    const streamBody = (await streamResponse.json()) as { url: string; format: string };
-    assert.equal(streamBody.format, "mp3");
+    for (const [format, contentType, quality] of [
+      ["mp3", "audio/mpeg", "transcoded_standard"],
+      ["aac", "audio/aac", "transcoded_standard"],
+      ["flac", "audio/flac", "transcoded_lossless_container"],
+      ["m4a", "audio/mp4", "transcoded_standard"],
+      ["wav", "audio/wav", "transcoded_lossless_container"],
+      ["ogg", "audio/ogg", "transcoded_standard"],
+    ] as const) {
+      const streamResponse = await fetch(`${baseUrl}/stream/${searchBody.tracks[0].id}?format=${format}`);
+      assert.equal(streamResponse.status, 200);
+      assert.equal(streamResponse.headers.get("content-type"), "application/json; charset=utf-8");
+      const streamBody = (await streamResponse.json()) as { url: string; format: string; quality: string };
+      assert.equal(streamBody.format, format);
+      assert.equal(streamBody.quality, quality);
 
-    const mediaResponse = await fetch(streamBody.url);
-    assert.equal(mediaResponse.status, 200);
-    assert.equal(mediaResponse.headers.get("content-type"), "audio/mpeg");
-    const audioBody = await mediaResponse.text();
-    assert.equal(audioBody, "audio-bytes");
+      const mediaResponse = await fetch(streamBody.url);
+      assert.equal(mediaResponse.status, 200);
+      assert.equal(mediaResponse.headers.get("content-type"), contentType);
+      const audioBody = await mediaResponse.text();
+      assert.equal(audioBody, `audio-bytes-${format}`);
+    }
+
+    const unsupportedResponse = await fetch(`${baseUrl}/stream/${searchBody.tracks[0].id}?format=mp4`);
+    assert.equal(unsupportedResponse.status, 400);
+    const unsupportedBody = (await unsupportedResponse.json()) as { error: string };
+    assert.equal(unsupportedBody.error, "unsupported_audio_format");
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((error) => {

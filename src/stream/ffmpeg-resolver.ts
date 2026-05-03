@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { HttpError } from "../errors/http-error.js";
 
-export type AudioFormat = "mp3" | "aac" | "flac";
+export type AudioFormat = "mp3" | "aac" | "flac" | "m4a" | "wav" | "ogg";
 
 interface InputRequestOptions {
   userAgent?: string;
@@ -21,6 +21,15 @@ export class FfmpegResolver {
     }
     if (format === "flac") {
       return ["-acodec", "flac"];
+    }
+    if (format === "m4a") {
+      return ["-acodec", "aac", "-b:a", "192k", "-movflags", "+faststart"];
+    }
+    if (format === "wav") {
+      return ["-acodec", "pcm_s16le"];
+    }
+    if (format === "ogg") {
+      return ["-acodec", "libvorbis", "-q:a", "5"];
     }
     return ["-acodec", "libmp3lame", "-ab", "192k"];
   }

@@ -32,7 +32,7 @@ interface SearchServiceLike {
 interface StreamServiceLike {
   resolve(args: {
     sourceUrl: string;
-    format?: "mp3" | "aac" | "flac";
+    format?: AudioFormat;
     torboxToken?: string;
     signal?: AbortSignal;
   }): Promise<
@@ -40,6 +40,8 @@ interface StreamServiceLike {
     | { type: "file"; filePath: string }
   >;
 }
+
+type AudioFormat = "mp3" | "aac" | "flac" | "m4a" | "wav" | "ogg";
 
 interface SettingsStoreLike {
   get(): {
@@ -143,7 +145,47 @@ function readRouteParam(request: express.Request, name: string): string {
 
 function contentTypeForFile(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
-  return ext === ".aac" ? "audio/aac" : ext === ".flac" ? "audio/flac" : "audio/mpeg";
+  if (ext === ".aac") {
+    return "audio/aac";
+  }
+  if (ext === ".flac") {
+    return "audio/flac";
+  }
+  if (ext === ".m4a") {
+    return "audio/mp4";
+  }
+  if (ext === ".wav") {
+    return "audio/wav";
+  }
+  if (ext === ".ogg") {
+    return "audio/ogg";
+  }
+  return "audio/mpeg";
+}
+
+function parseAudioFormat(raw: unknown): AudioFormat {
+  const format = typeof raw === "string" ? raw.toLowerCase() : "mp3";
+  if (
+    format !== "mp3" &&
+    format !== "aac" &&
+    format !== "flac" &&
+    format !== "m4a" &&
+    format !== "wav" &&
+    format !== "ogg"
+  ) {
+    throw new HttpError(400, "unsupported_audio_format");
+  }
+  return format;
+}
+
+function qualityForResponse(format: AudioFormat, directUrl: boolean): string {
+  if (directUrl) {
+    return "source";
+  }
+  if (format === "flac" || format === "wav") {
+    return "transcoded_lossless_container";
+  }
+  return "transcoded_standard";
 }
 
 function encodeSearchCursor(query: string, cursor: number, limit: number): string {
@@ -1470,7 +1512,6 @@ export function createApp(args: {
           : "";
     const sourceUrl =
       typeof request.query.url === "string" ? request.query.url : decodeTrackId(routeTrackId) ?? "";
-    const format = typeof request.query.format === "string" ? request.query.format : "mp3";
     const savedSettings = args.settingsStore.get();
     const addonToken = readAddonToken(request);
     const headerTorboxToken =
@@ -1482,6 +1523,7 @@ export function createApp(args: {
     });
 
     try {
+      const format = parseAudioFormat(request.query.format);
       let tokenFromLink:
         | { debridEnabled: boolean; torboxToken?: string }
         | undefined;
@@ -1507,7 +1549,7 @@ export function createApp(args: {
 
       const resolved = await args.streamService.resolve({
         sourceUrl,
-        format: "mp3",
+        format,
         torboxToken: debridEnabled ? torboxToken : undefined,
         signal: abortController.signal,
       });
@@ -1515,10 +1557,17 @@ export function createApp(args: {
       if (resolved.type === "url") {
         response.setHeader("x-stream-provider", resolved.provider);
         args.securityEventLog?.record("stream_provider_routed", resolved.provider);
-        const urlResponse: { url: string; format: string; provider: string; expiresAt?: number } = {
+        const urlResponse: {
+          url: string;
+          format: string;
+          provider: string;
+          quality: string;
+          expiresAt?: number;
+        } = {
           url: resolved.url,
           format,
           provider: resolved.provider,
+          quality: qualityForResponse(format, true),
         };
         if (resolved.expiresAt !== undefined) {
           urlResponse.expiresAt = resolved.expiresAt;
@@ -1535,6 +1584,7 @@ export function createApp(args: {
       response.status(200).json({
         url: `${request.protocol}://${host}/media/${encodeURIComponent(fileName)}`,
         format,
+        quality: qualityForResponse(format, false),
       });
       args.securityEventLog?.record("stream_local_fallback");
     } catch (error) {
