@@ -219,7 +219,7 @@ http://localhost:3000/addon/<token>/manifest.json
 - `GET /album/:id`
 - `GET /artist/:id`
 - `GET /playlist/:id`
-- `GET /stream/:id?url=<tiktok-url>&format=mp3`
+- `GET /stream/:id?url=<tiktok-url>&format=<mp3|aac|flac|m4a|wav|ogg>`
 - `GET /cache/stats`
 - `GET /configure`
 - `POST /api/config/preview`
@@ -232,6 +232,36 @@ http://localhost:3000/addon/<token>/manifest.json
 - `GET /public/events`
 - `GET /settings`
 - `POST /settings`
+
+## Audio Format and Quality
+
+The stream endpoint accepts an optional `format` query param. Supported values are `mp3`, `aac`, `flac`, `m4a`, `wav`, `ogg`. The default when omitted is `mp3`.
+
+Example:
+
+```bash
+curl -s "http://localhost:3000/stream/<track-id>?format=flac"
+```
+
+Unsupported format values return `400 { "error": "unsupported_audio_format" }`.
+
+### Quality semantics
+
+Every stream response includes a `quality` field that describes what you are actually receiving:
+
+| `quality` value | Meaning |
+|---|---|
+| `source` | Direct URL from Debrid provider. Original quality, no transcoding. |
+| `transcoded_standard` | Local ffmpeg transcode to mp3, aac, m4a, or ogg. |
+| `transcoded_lossless_container` | Local ffmpeg transcode to flac or wav. |
+
+**Important caveat for TikTok sources**: TikTok stores audio as lossy compressed streams (typically AAC at variable bitrate). Requesting `flac` or `wav` produces a lossless container but the audio content is still derived from a lossy source. The `transcoded_lossless_container` label accurately describes the container and codec used, not the original recording quality.
+
+### Operator cost notes
+
+- `flac` and `wav` produce significantly larger cache files than `mp3` or `aac` for the same track. A typical 3 minute TikTok sound transcoded to WAV (PCM 16-bit) will be 30 to 50 times larger than the equivalent mp3.
+- `ogg` (libvorbis) and `aac` are efficient and behave similarly to `mp3` in cache footprint.
+- If disk space is limited, adjust `STREAM_CACHE_MAX_BYTES` downward when enabling lossless output formats, or keep the default format as `mp3` and let users select lossless on demand.
 
 ## How catalog works
 

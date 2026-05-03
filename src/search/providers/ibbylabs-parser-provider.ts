@@ -45,6 +45,11 @@ interface SearchApiMusic {
   coverLarge?: string;
   authorName?: string;
   duration?: number;
+  // Note: TikTok's search API response does not include ISRC or UPC fields in
+  // the music object. The NormalizedTrack.isrc field is intentionally omitted
+  // from all tracks produced by this provider. Eclipse MusicKit enrichment via
+  // ISRC will not occur until TikTok exposes this field or an external lookup
+  // path is wired in. Track this in ISSUES-LOCAL.md under "ISRC enrichment".
 }
 
 interface SearchApiItem {
