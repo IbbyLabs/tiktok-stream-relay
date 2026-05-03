@@ -8,6 +8,59 @@
 
 <a id="v0-4-0"></a>
 
+<a id="v0-5-0"></a>
+
+## [v0.5.0] - 03/05/2026
+
+### Added
+* add description field to album and playlist detail responses
+  
+  - Album detail (/album/:id) now includes a description field: "TikTok sounds by {artist}"
+  - Playlist detail (/playlist/:id) now includes a description field describing the
+    query or confirming it is the trending playlist
+  - Both fields satisfy the optional description field in the Eclipse addon protocol
+  - New test assertions confirm both fields are present as strings in the catalog
+    endpoint test
+* multi-format output and quality signaling
+  
+  - Add AudioFormat union: mp3, aac, flac, m4a, wav, ogg
+  - Remove forced mp3 in stream route — format now passed through from
+    request query param to resolver and ffmpeg
+  - Add parseAudioFormat with strict validation; unsupported formats return
+    400 unsupported_audio_format (moved inside try block so HttpError is
+    caught and returned correctly)
+  - Extend ffmpeg resolver arg mapping for m4a (aac+faststart), wav
+    (pcm_s16le), and ogg (libvorbis)
+  - Add quality field to all stream responses:
+    source (direct provider URL), transcoded_lossless_container (flac/wav),
+    transcoded_standard (mp3/aac/m4a/ogg)
+  - Preserve expiresAt passthrough on routed debrid URL responses
+  - Extend contentTypeForFile to return correct MIME type per extension:
+    audio/mp4 for m4a, audio/wav for wav, audio/ogg for ogg
+  - Expand e2e test to exercise all six formats, assert format/quality
+    fields and correct content-type on media route, and verify 400 on
+    unsupported format
+  - All 43 tests pass, lint clean, build clean
+
+### Documentation
+* Update docs
+* document multi-format audio support and quality semantics
+  
+  - Add Audio Format and Quality section to README covering all six supported
+    formats (mp3, aac, flac, m4a, wav, ogg), the optional ?format= query param,
+    and the 400 error returned for unsupported values
+  - Add quality semantics table explaining source, transcoded_standard, and
+    transcoded_lossless_container so operators know what each value means
+  - Add caveat that TikTok source audio is lossy; a lossless container format does
+    not imply lossless source audio
+  - Add operator cost warning: wav and flac output is 30-50x larger than mp3 per
+    track; size STREAM_CACHE_MAX_BYTES accordingly
+  - Update stream endpoint line in the Endpoints section to show the full format
+    parameter syntax
+  - Add comment on SearchApiMusic interface in ibbylabs-parser-provider noting
+    that TikTok's search API does not expose ISRC or UPC fields, so the isrc field
+    on NormalizedTrack is intentionally absent for all tracks from this provider
+
 ## [v0.4.0] - 03/05/2026
 
 ### Added
