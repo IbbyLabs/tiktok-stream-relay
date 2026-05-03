@@ -15,7 +15,8 @@ interface SearchTrackPayload {
   artist: string;
   duration: number;
   artworkURL: string;
-  streamURL: string;
+  isrc?: string;
+  format?: string;
 }
 
 interface SearchAlbumPayload {
@@ -126,7 +127,8 @@ test("eclipse addon flow supports search to playable audio response", async () =
     assert.equal(searchBody.tracks[0].title, track.title);
     assert.equal(searchBody.tracks[0].artist, track.artist);
     assert.equal(searchBody.hasMore, false);
-    assert.equal(searchBody.tracks[0].streamURL, sourceUrl);
+    assert.equal((searchBody.tracks[0] as Record<string, unknown>).streamURL, undefined, "streamURL must not appear in search track response");
+    assert.equal(searchBody.tracks[0].format, "mp3");
     assert.equal(Array.isArray(searchBody.albums), true);
     assert.equal(Array.isArray(searchBody.artists), true);
     assert.equal(Array.isArray(searchBody.playlists), true);
@@ -352,6 +354,7 @@ test("hybrid catalog endpoints resolve album artist and playlist details", async
     assert.equal(albumBody.id, searchBody.albums![0].id);
     assert.equal(albumBody.title, "Song A");
     assert.equal(albumBody.tracks.length, 2);
+    assert.equal((albumBody.tracks[0] as Record<string, unknown>).streamURL, undefined, "streamURL must not appear in album track items");
 
     const artistResponse = await fetch(`${baseUrl}/artist/${encodeURIComponent(searchBody.artists![0].id)}`);
     assert.equal(artistResponse.status, 200);
@@ -364,6 +367,7 @@ test("hybrid catalog endpoints resolve album artist and playlist details", async
     assert.equal(artistBody.id, searchBody.artists![0].id);
     assert.equal(artistBody.name, "Artist A");
     assert.equal(artistBody.topTracks.length, 2);
+    assert.equal((artistBody.topTracks[0] as Record<string, unknown>).streamURL, undefined, "streamURL must not appear in artist topTracks items");
     assert.equal(artistBody.albums.length > 0, true);
 
     const playlistResponse = await fetch(
@@ -377,6 +381,7 @@ test("hybrid catalog endpoints resolve album artist and playlist details", async
     };
     assert.equal(playlistBody.id, searchBody.playlists![0].id);
     assert.equal(playlistBody.tracks.length, 2);
+    assert.equal((playlistBody.tracks[0] as Record<string, unknown>).streamURL, undefined, "streamURL must not appear in playlist track items");
     assert.equal(playlistBody.title.startsWith("TikTok Mix:"), true);
   } finally {
     await new Promise<void>((resolve, reject) => {

@@ -8,6 +8,9 @@ import {
   decodePlaylistIdToQuery,
   findAlbumGroupById,
   findArtistGroupById,
+  lookupAlbumInSnapshot,
+  lookupArtistInSnapshot,
+  purgeStaleCatalogSnapshots,
 } from "./catalog/hybrid-catalog.js";
 import { applyConfigDefaults, validateConfigSafety } from "./addon/config-policy.js";
 import { DiskCache } from "./cache/disk-cache.js";
@@ -33,7 +36,7 @@ interface StreamServiceLike {
     torboxToken?: string;
     signal?: AbortSignal;
   }): Promise<
-    | { type: "url"; url: string; provider: "torbox" }
+    | { type: "url"; url: string; provider: "torbox"; expiresAt?: number }
     | { type: "file"; filePath: string }
   >;
 }
@@ -195,18 +198,29 @@ function toTrackResponse(track: NormalizedTrack): {
   artist: string;
   duration: number;
   artworkURL: string;
-  streamURL: string;
+  isrc?: string;
   format: string;
 } {
-  return {
+  const response: {
+    id: string;
+    title: string;
+    artist: string;
+    duration: number;
+    artworkURL: string;
+    isrc?: string;
+    format: string;
+  } = {
     id: encodeTrackId(track.streamURL),
     title: track.title,
     artist: track.artist,
     duration: track.duration,
     artworkURL: track.artworkURL,
-    streamURL: track.streamURL,
     format: "mp3",
   };
+  if (typeof track.isrc === "string" && track.isrc.length > 0) {
+    response.isrc = track.isrc;
+  }
+  return response;
 }
 
 function parseConfigInput(body: unknown): AddonConfigInput {
@@ -1313,11 +1327,15 @@ export function createApp(args: {
         throw new HttpError(400, "invalid_catalog_id");
       }
 
-      const page = await args.searchService.searchPage({
-        query,
-        limit: args.config.searchMaxLimit,
-      });
-      const album = findAlbumGroupById(albumId, page.tracks);
+      let album = lookupAlbumInSnapshot(query, albumId);
+      if (!album) {
+        const page = await args.searchService.searchPage({
+          query,
+          limit: args.config.searchMaxLimit,
+        });
+        buildHybridCatalogSearchResult(query, page.tracks);
+        album = lookupAlbumInSnapshot(query, albumId) ?? findAlbumGroupById(albumId, page.tracks);
+      }
       if (!album) {
         throw new HttpError(404, "catalog_not_found");
       }
@@ -1359,11 +1377,15 @@ export function createApp(args: {
         throw new HttpError(400, "invalid_catalog_id");
       }
 
-      const page = await args.searchService.searchPage({
-        query,
-        limit: args.config.searchMaxLimit,
-      });
-      const artist = findArtistGroupById(artistId, page.tracks);
+      let artist = lookupArtistInSnapshot(query, artistId);
+      if (!artist) {
+        const page = await args.searchService.searchPage({
+          query,
+          limit: args.config.searchMaxLimit,
+        });
+        buildHybridCatalogSearchResult(query, page.tracks);
+        artist = lookupArtistInSnapshot(query, artistId) ?? findArtistGroupById(artistId, page.tracks);
+      }
       if (!artist) {
         throw new HttpError(404, "catalog_not_found");
       }
@@ -1492,11 +1514,15 @@ export function createApp(args: {
       if (resolved.type === "url") {
         response.setHeader("x-stream-provider", resolved.provider);
         args.securityEventLog?.record("stream_provider_routed", resolved.provider);
-        response.status(200).json({
+        const urlResponse: { url: string; format: string; provider: string; expiresAt?: number } = {
           url: resolved.url,
           format,
           provider: resolved.provider,
-        });
+        };
+        if (resolved.expiresAt !== undefined) {
+          urlResponse.expiresAt = resolved.expiresAt;
+        }
+        response.status(200).json(urlResponse);
         return;
       }
 
@@ -1614,6 +1640,8 @@ export function createApp(args: {
       response.status(400).json({ error: message });
     }
   });
+
+  setInterval(purgeStaleCatalogSnapshots, 5 * 60 * 1000).unref();
 
   return app;
 }

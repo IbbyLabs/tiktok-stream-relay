@@ -159,7 +159,7 @@ interface ResolveArgs {
 }
 
 export type StreamResolution =
-  | { type: "url"; url: string; provider: "torbox" }
+  | { type: "url"; url: string; provider: "torbox"; expiresAt?: number }
   | { type: "file"; filePath: string };
 
 export class StreamService {
@@ -290,6 +290,7 @@ export class StreamService {
         type: "url",
         url: routed.url,
         provider: routed.provider,
+        ...(routed.expiresAt !== undefined ? { expiresAt: routed.expiresAt } : {}),
       };
       this.urlMapCache.set(mapKey, output);
       return output;

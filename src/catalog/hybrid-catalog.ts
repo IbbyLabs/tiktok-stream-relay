@@ -13,7 +13,7 @@ interface PlaylistIdPayload {
   query: string;
 }
 
-interface AlbumGroup {
+export interface AlbumGroup {
   id: string;
   title: string;
   artist: string;
@@ -21,12 +21,21 @@ interface AlbumGroup {
   tracks: NormalizedTrack[];
 }
 
-interface ArtistGroup {
+export interface ArtistGroup {
   id: string;
   name: string;
   artworkURL: string;
   tracks: NormalizedTrack[];
 }
+
+interface CatalogSnapshot {
+  albums: AlbumGroup[];
+  artists: ArtistGroup[];
+  expiresAt: number;
+}
+
+const SNAPSHOT_TTL_MS = 10 * 60 * 1000;
+const catalogSnapshots = new Map<string, CatalogSnapshot>();
 
 export interface CatalogAlbumSummary {
   id: string;
@@ -178,11 +187,47 @@ function buildArtistGroups(tracks: NormalizedTrack[]): ArtistGroup[] {
   });
 }
 
+export function purgeStaleCatalogSnapshots(): void {
+  const now = Date.now();
+  for (const [key, snapshot] of catalogSnapshots) {
+    if (snapshot.expiresAt < now) {
+      catalogSnapshots.delete(key);
+    }
+  }
+}
+
+export function lookupAlbumInSnapshot(query: string, albumId: string): AlbumGroup | null {
+  const snapshot = catalogSnapshots.get(query);
+  if (!snapshot || snapshot.expiresAt < Date.now()) {
+    return null;
+  }
+  return snapshot.albums.find((item) => item.id === albumId) ?? null;
+}
+
+export function lookupArtistInSnapshot(query: string, artistId: string): ArtistGroup | null {
+  const snapshot = catalogSnapshots.get(query);
+  if (!snapshot || snapshot.expiresAt < Date.now()) {
+    return null;
+  }
+  return snapshot.artists.find((item) => item.id === artistId) ?? null;
+}
+
 export function buildHybridCatalogSearchResult(
   query: string,
   tracks: NormalizedTrack[],
 ): HybridCatalogSearchResult {
-  const albums = buildAlbumGroups(tracks).slice(0, 24).map((item) => ({
+  const normalizedQuery = normalizeValue(query);
+
+  const albumGroups = buildAlbumGroups(tracks);
+  const artistGroups = buildArtistGroups(tracks);
+
+  catalogSnapshots.set(normalizedQuery, {
+    albums: albumGroups,
+    artists: artistGroups,
+    expiresAt: Date.now() + SNAPSHOT_TTL_MS,
+  });
+
+  const albums = albumGroups.slice(0, 24).map((item) => ({
     id: item.id,
     title: item.title,
     artist: item.artist,
@@ -190,13 +235,11 @@ export function buildHybridCatalogSearchResult(
     trackCount: item.tracks.length,
   }));
 
-  const artists = buildArtistGroups(tracks).slice(0, 24).map((item) => ({
+  const artists = artistGroups.slice(0, 24).map((item) => ({
     id: item.id,
     name: item.name,
     artworkURL: item.artworkURL,
   }));
-
-  const normalizedQuery = normalizeValue(query);
   const playlists: CatalogPlaylistSummary[] = tracks.length
     ? [
         {

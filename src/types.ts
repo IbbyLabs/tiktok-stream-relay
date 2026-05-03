@@ -5,6 +5,7 @@ export interface NormalizedTrack {
   duration: number;
   artworkURL: string;
   streamURL: string;
+  isrc?: string;
   playbackURL?: string;
 }
 
@@ -28,7 +29,7 @@ export interface SearchResponse {
     artist: string;
     duration: number;
     artworkURL: string;
-    streamURL?: string;
+    isrc?: string;
     format?: string;
   }>;
   hasMore?: boolean;

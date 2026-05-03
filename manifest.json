@@ -3,6 +3,7 @@
   "name": "IbbyLabs TikTok Stream Relay",
   "version": "0.3.0",
   "description": "Search TikTok sounds and resolve playable audio for Eclipse.",
+  "icon": "https://cdn.jsdelivr.net/gh/IbbyLabs/images@main/ibbylabs-icon-hex.png",
   "resources": [
     "search",
     "stream",

@@ -233,6 +233,18 @@ http://localhost:3000/addon/<token>/manifest.json
 - `GET /settings`
 - `POST /settings`
 
+## How catalog works
+
+Albums, artists, and playlists returned by this addon are derived from TikTok search results. They are not a canonical TikTok catalog.
+
+- **Album** — tracks with the same title and artist appearing in the same search result set, grouped together.
+- **Artist** — tracks by the same creator appearing in the same result set, grouped together.
+- **Playlist** — all results for a given query, surfaced as a browsable collection.
+
+Because groups are derived from search results, detail pages (`/album/:id`, `/artist/:id`, `/playlist/:id`) are stable for approximately 10 minutes after the search that produced them. A fresh search for the same query refreshes the detail pages.
+
+Grouping is normalized: minor differences in casing or whitespace in artist or title names may produce separate groups rather than merging entries.
+
 ## Public Config Portal
 
 - Open `GET /configure` to manage addon link generation and lifecycle operations.
