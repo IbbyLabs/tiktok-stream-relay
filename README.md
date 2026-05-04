@@ -351,10 +351,12 @@ npm run release:major
 Each release script now:
 
 - runs `lint`, `test`, and `build`
+- refreshes `config/trending-sounds.json` via `npm run refresh:trending`
 - bumps `package.json` and `package-lock.json`
 - syncs the add-on version in [manifest.json](manifest.json)
 - refreshes versioned GHCR pull examples in [README.md](README.md)
 - generates the matching [CHANGELOG.md](CHANGELOG.md) entry from commits since the previous tag
+- stages all files touched by the release workflow (`git add -A`)
 - commits the release, creates the semantic tag, and pushes `main` with tags
 
 Pushing a semantic tag like `v0.1.1` triggers [release.yml](.github/workflows/release.yml):
