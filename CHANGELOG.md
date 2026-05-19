@@ -10,6 +10,27 @@
 
 <a id="v0-5-0"></a>
 
+<a id="v0-5-1"></a>
+
+## [v0.5.1] - 19/05/2026
+
+### Fixed
+* harden debrid routing and search fallback diagnostics
+  
+  - Improves playback reliability for debrid users by validating upstream routing responses and preferring direct playable media links before local fallback.
+  
+  - Prevents stale routed links from being reused after expiry so playback can recover faster on repeat requests.
+  
+  - Adds clearer reliability signals in logs when stream routing or search providers fail, making outages and auth problems easier to diagnose.
+
+### Other Changes
+* update package lock
+* include all release-generated files in release commit
+  
+  - Refresh trending snapshot data during release so generated content is not left behind
+  - Stage every file touched by the release workflow to avoid staggered unstaged changes
+  - Keep release documentation aligned with the new behavior and commit scope
+
 ## [v0.5.0] - 03/05/2026
 
 ### Added
