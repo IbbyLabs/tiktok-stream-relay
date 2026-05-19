@@ -207,6 +207,17 @@ export function normalizeParsedItem(
     !item.streamURL ||
     typeof item.duration !== "number"
   ) {
+    if (process.env.DEBUG_SEARCH === "1") {
+      console.error("[normalizeParsedItem] Validation failed:", {
+        id: item.id ? "✓" : "✗ missing",
+        title: item.title ? "✓" : "✗ missing",
+        artist: item.artist ? "✓" : "✗ missing",
+        artworkURL: item.artworkURL ? "✓" : "✗ missing",
+        streamURL: item.streamURL ? "✓" : "✗ missing",
+        duration: typeof item.duration === "number" ? `✓ ${item.duration}` : `✗ ${typeof item.duration}`,
+        item,
+      });
+    }
     return null;
   }
 
@@ -281,6 +292,15 @@ export function normalizeSearchResultItem(
       : item?.video?.cover?.url_list?.[0];
 
   if (entry.type !== 1 || !item || !author || !uniqueId || !music?.id) {
+    if (process.env.DEBUG_SEARCH === "1") {
+      console.error("[normalizeSearchResultItem] Early validation failed:", {
+        type: `${entry.type} (expected 1)`,
+        hasItem: !!item,
+        hasAuthor: !!author,
+        hasUniqueId: !!uniqueId,
+        hasMusicId: !!music?.id,
+      });
+    }
     return null;
   }
 
@@ -482,6 +502,9 @@ export class IbbyLabsParserProvider implements SearchProvider {
     const pageSize = Math.min(Math.max(limit * 2, 20), 50);
     const maxPages = Math.max(Math.ceil(limit / pageSize) + 2, 3);
 
+    let totalItemsProcessed = 0;
+    let totalItemsDropped = 0;
+
     for (let page = 0; page < maxPages && ranked.size < limit; page += 1) {
       let data: SearchApiResponse;
       try {
@@ -496,8 +519,10 @@ export class IbbyLabsParserProvider implements SearchProvider {
       }
 
       for (const entry of data.data ?? []) {
+        totalItemsProcessed += 1;
         const track = normalizeSearchResultItem(entry);
         if (!track) {
+          totalItemsDropped += 1;
           continue;
         }
 
@@ -524,6 +549,24 @@ export class IbbyLabsParserProvider implements SearchProvider {
 
       nextCursor = parsedNextCursor;
       currentCursor = parsedNextCursor;
+    }
+
+    if (process.env.DEBUG_SEARCH === "1") {
+      console.log("[runSearch] Results:", {
+        query,
+        totalItemsProcessed,
+        totalItemsDropped,
+        validTracks: ranked.size,
+        dropRate: totalItemsProcessed > 0 ? `${((totalItemsDropped / totalItemsProcessed) * 100).toFixed(1)}%` : "0%",
+      });
+    }
+
+    const dropRate =
+      totalItemsProcessed > 0 ? totalItemsDropped / totalItemsProcessed : 0;
+    if (totalItemsProcessed > 0 && dropRate >= 0.8) {
+      console.warn(
+        `[search-provider] high_drop_rate query=${query} processed=${totalItemsProcessed} dropped=${totalItemsDropped} rate=${(dropRate * 100).toFixed(1)}%`,
+      );
     }
 
     const tracks = [...ranked.values()]
@@ -562,6 +605,9 @@ export class IbbyLabsParserProvider implements SearchProvider {
       return await this.runSearch(query, limit, cursor, true);
     } catch (error) {
       if (this.authCookie && error instanceof AuthSessionError) {
+        console.warn(
+          `[search-provider] auth_session_failed query=${query} mode=auth fallback=anonymous`,
+        );
         return this.runSearch(query, limit, cursor, false);
       }
       throw error;

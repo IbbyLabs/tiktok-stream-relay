@@ -15,6 +15,7 @@ export class TrendingIndex {
   public reload(): void {
     const fullPath = this.configPath;
     if (!fs.existsSync(fullPath)) {
+      console.warn(`trending index missing: path=${fullPath}`);
       this.items = [];
       return;
     }
@@ -22,7 +23,14 @@ export class TrendingIndex {
       const raw = fs.readFileSync(fullPath, "utf-8");
       const parsed = JSON.parse(raw) as NormalizedTrack[];
       this.items = Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) {
+        console.warn(`trending index invalid shape: path=${fullPath}`);
+      }
+      if (this.items.length === 0) {
+        console.warn(`trending index empty: path=${fullPath}`);
+      }
     } catch {
+      console.warn(`trending index parse failed: path=${fullPath}`);
       this.items = [];
     }
   }

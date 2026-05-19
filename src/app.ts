@@ -1588,7 +1588,11 @@ export function createApp(args: {
         format,
         quality: qualityForResponse(format, false),
       });
-      args.securityEventLog?.record("stream_local_fallback");
+      const fallbackReason =
+        debridEnabled && Boolean(torboxToken)
+          ? "debrid_enabled_with_token"
+          : "local_only";
+      args.securityEventLog?.record("stream_local_fallback", fallbackReason);
     } catch (error) {
       if (error instanceof HttpError) {
         response.status(error.statusCode).json({ error: error.message });

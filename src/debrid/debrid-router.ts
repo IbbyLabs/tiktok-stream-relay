@@ -1,5 +1,26 @@
 import { DebridAdapter, DebridRouteResult } from "./types.js";
 
+function classifyDebridError(message: string): string {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("timeout")) {
+    return "timeout";
+  }
+  if (normalized.includes("http_401") || normalized.includes("http_403")) {
+    return "auth";
+  }
+  if (
+    normalized.includes("http_429") ||
+    normalized.includes("rate") ||
+    normalized.includes("throttle")
+  ) {
+    return "throttle";
+  }
+  if (normalized.includes("invalid") || normalized.includes("missing")) {
+    return "invalid_response";
+  }
+  return "unknown";
+}
+
 export class DebridRouter {
   private readonly adapters: DebridAdapter[];
   private readonly timeoutMs: number;
@@ -32,8 +53,9 @@ export class DebridRouter {
         return result;
       } catch (error) {
         const message = error instanceof Error ? error.message : "unknown";
+        const reason = classifyDebridError(message);
         console.log(
-          `debrid route failed: provider=${adapter.provider} class=${message}`,
+          `debrid route failed: provider=${adapter.provider} reason=${reason} class=${message}`,
         );
       }
     }

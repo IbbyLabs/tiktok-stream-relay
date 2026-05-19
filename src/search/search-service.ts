@@ -42,6 +42,9 @@ export class SearchService {
 
     if (trendingOnly) {
       const trending = this.trending.search(cacheKey).slice(0, args.limit);
+      if (trending.length === 0) {
+        console.warn(`search trending empty: query=${cacheKey}`);
+      }
       if (cacheEligible && trending.length > 0) {
         const page: SearchPage = { tracks: trending, hasMore: false };
         this.memoryCache.set(cacheKey, page);
@@ -80,16 +83,27 @@ export class SearchService {
       }
 
       const trending = this.trending.search(cacheKey).slice(0, args.limit);
+      console.warn(
+        `search provider empty: query=${cacheKey} providerTracks=0 trendingTracks=${trending.length}`,
+      );
       return { tracks: trending, hasMore: false };
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "unknown";
+      console.warn(`search provider failed: query=${cacheKey} class=${message}`);
       if (cacheEligible) {
         const stale = this.diskCache.getStale(cacheKey);
         if (stale) {
+          console.warn(
+            `search stale fallback: query=${cacheKey} tracks=${stale.tracks.length}`,
+          );
           return stale;
         }
       }
 
       const fallback = this.trending.search(cacheKey).slice(0, args.limit);
+      console.warn(
+        `search trending fallback: query=${cacheKey} tracks=${fallback.length}`,
+      );
       return { tracks: fallback, hasMore: false };
     }
   }

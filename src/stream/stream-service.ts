@@ -282,22 +282,50 @@ export class StreamService {
         }
         this.urlMapCache.delete(mapKey);
       } else {
-        return mapped;
+        if (
+          mapped.expiresAt !== undefined &&
+          Number.isFinite(mapped.expiresAt) &&
+          mapped.expiresAt <= Date.now()
+        ) {
+          this.urlMapCache.delete(mapKey);
+        } else {
+          return mapped;
+        }
       }
     }
 
-    const routed = await this.router.tryRoute(sourceUrl, {
-      torbox: args.torboxToken,
-    });
-    if (routed) {
-      const output: StreamResolution = {
-        type: "url",
-        url: routed.url,
-        provider: routed.provider,
-        ...(routed.expiresAt !== undefined ? { expiresAt: routed.expiresAt } : {}),
-      };
-      this.urlMapCache.set(mapKey, output);
-      return output;
+    let transcodeInputUrls: string[] | undefined;
+    if (args.torboxToken) {
+      try {
+        transcodeInputUrls = await this.resolveMediaUrls(sourceUrl);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "unknown";
+        console.log(
+          `debrid candidate resolution failed: source=${sourceUrl} class=${message}`,
+        );
+      }
+
+      const debridCandidates =
+        transcodeInputUrls && transcodeInputUrls.length > 0
+          ? transcodeInputUrls
+          : [sourceUrl];
+
+      for (const candidateUrl of debridCandidates) {
+        const routed = await this.router.tryRoute(candidateUrl, {
+          torbox: args.torboxToken,
+        });
+        if (!routed) {
+          continue;
+        }
+        const output: StreamResolution = {
+          type: "url",
+          url: routed.url,
+          provider: routed.provider,
+          ...(routed.expiresAt !== undefined ? { expiresAt: routed.expiresAt } : {}),
+        };
+        this.urlMapCache.set(mapKey, output);
+        return output;
+      }
     }
 
     const key = this.streamCache.keyFromUrl(sourceUrl, format);
@@ -309,7 +337,9 @@ export class StreamService {
     }
 
     const outputPath = this.streamCache.createOutputPath(key, format);
-    const transcodeInputUrls = await this.resolveMediaUrls(sourceUrl);
+    if (!transcodeInputUrls || transcodeInputUrls.length === 0) {
+      transcodeInputUrls = await this.resolveMediaUrls(sourceUrl);
+    }
     const durationHint = this.pageDurationHintCache.get(sourceUrl) ?? undefined;
     const cachedRequestHeaders = this.pageRequestHeadersCache.get(sourceUrl) ?? {};
     const startedAt = Date.now();
