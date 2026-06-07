@@ -475,12 +475,13 @@ export function createApp(args: {
     response: express.Response,
     addonToken: string,
   ): boolean => {
-    if (!args.linkTokenService) {
+    if (!args.linkTokenService || !args.addonLinkStore) {
       response.status(503).json({ error: "addon_token_verification_unavailable" });
       return false;
     }
     try {
-      args.linkTokenService.verify(addonToken);
+      const verified = args.linkTokenService.verify(addonToken);
+      args.addonLinkStore.getActiveConfig(verified.linkId);
       response.setHeader(
         "set-cookie",
         `addonToken=${encodeURIComponent(addonToken)}; Path=/; HttpOnly; SameSite=Lax`,

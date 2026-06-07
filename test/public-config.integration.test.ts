@@ -156,6 +156,9 @@ test("public config flow supports lifecycle and stream credential injection", as
     );
     assert.equal(supersededStreamResponse.status, 401);
 
+    const revokedManifestResponse = await fetch(`${baseUrl}${created.addonUrl}`);
+    assert.equal(revokedManifestResponse.status, 401);
+
     const revokeResponse = await fetch(`${baseUrl}/api/config/${rotated.linkId}/revoke`, {
       method: "POST",
       headers: { "x-addon-link-token": rotatedToken },
@@ -408,6 +411,9 @@ test("creating a new manifest with the same Torbox token revokes old addon links
       `${baseUrl}/stream/${encodeURIComponent(Buffer.from("https://www.tiktok.com/@u/video/1234567890123456789", "utf8").toString("base64url"))}?addonToken=${encodeURIComponent(first.addonToken)}`,
     );
     assert.equal(oldStream.status, 401);
+
+    const oldManifest = await fetch(`${baseUrl}/addon/${encodeURIComponent(first.addonToken)}/manifest.json`);
+    assert.equal(oldManifest.status, 401);
 
     const newSearch = await fetch(
       `${baseUrl}/addon/${encodeURIComponent(second.addonToken)}/search?q=late`,
