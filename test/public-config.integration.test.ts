@@ -285,6 +285,75 @@ test("lifecycle mutation rejects missing or mismatched addon token", async () =>
   }
 });
 
+test("config create accepts no Torbox key when debrid is disabled", async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "public-config-no-key-"));
+  const manifestPath = path.join(tempDir, "manifest.json");
+  fs.writeFileSync(manifestPath, JSON.stringify({ name: "test" }), "utf8");
+
+  const app = createApp({
+    manifestPath,
+    config: {
+      debridEnabled: true,
+      streamCacheMaxBytes: 1024,
+      liveSearchMaxResults: 10,
+      searchMaxLimit: 20,
+    },
+    settingsStore: {
+      get: () => ({ debridEnabled: false }),
+      save: () => ({ debridEnabled: false }),
+    },
+    searchService: {
+      search: async () => [],
+      searchPage: async () => ({ tracks: [], hasMore: false } as SearchPage),
+    },
+    streamService: {
+      resolve: async () => ({ type: "url", url: "https://cdn.example/audio.mp3", provider: "torbox" as const }),
+    },
+    memoryCache: new MemoryCache<SearchPage>(60_000, 10),
+    diskCache: new DiskCache<SearchPage>(path.join(tempDir, "search-cache"), 60_000),
+    streamCache: new StreamCache(path.join(tempDir, "stream-cache")),
+    addonLinkStore: new AddonLinkStore(tempDir, new CryptoBox("test-secret")),
+    linkTokenService: new LinkTokenService("v1:test-signing-key"),
+  });
+
+  const server = app.listen(0);
+  try {
+    await new Promise<void>((resolve) => server.once("listening", () => resolve()));
+    const address = server.address();
+    if (!address || typeof address === "string") {
+      throw new Error("server_address_unavailable");
+    }
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+
+    const createResponse = await fetch(`${baseUrl}/api/config/create`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ debridEnabled: false }),
+    });
+    assert.equal(createResponse.status, 201);
+    const created = (await createResponse.json()) as {
+      status: string;
+      addonToken: string;
+      addonUrl: string;
+    };
+    assert.equal(created.status, "active");
+    assert.ok(created.addonToken.length > 0);
+
+    const manifestResponse = await fetch(`${baseUrl}${created.addonUrl}`);
+    assert.equal(manifestResponse.status, 200);
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      });
+    });
+  }
+});
+
 test("stream fails closed for invalid addon token", async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "public-config-fail-closed-"));
   const manifestPath = path.join(tempDir, "manifest.json");

@@ -889,7 +889,7 @@ export function createApp(args: {
       <section class="setup-panel">
         <div class="setup-header">
           <h1>Get your Manifest URL</h1>
-          <p>Enter your Torbox API Key, generate a link, and copy the Manifest URL into Eclipse.</p>
+          <p>Add your Torbox API Key if you have one, generate a link, and copy the Manifest URL into Eclipse.</p>
         </div>
 
         <div class="section-divider" aria-hidden="true"></div>
@@ -922,7 +922,7 @@ export function createApp(args: {
             <button class="btn" id="copyManifest" type="button" disabled>Copy Manifest URL</button>
             <button class="btn" id="openManifest" type="button" disabled>Open Manifest</button>
           </div>
-          <p class="status" id="statusText" role="status">Enter your Torbox API Key above to get started.</p>
+          <p class="status" id="statusText" role="status">Generate a link to get started. Torbox API Key is optional.</p>
         </div>
       </section>
 
@@ -1072,11 +1072,6 @@ export function createApp(args: {
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         const token = torboxTokenInput.value.trim();
-        if (!token) {
-          setStatus("Enter your API Key to continue.");
-          setManifestState("");
-          return;
-        }
 
         saveTokenToStorage(token);
 
@@ -1090,8 +1085,8 @@ export function createApp(args: {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
-              debridEnabled: true,
-              torboxToken: token,
+              debridEnabled: token.length > 0,
+              torboxToken: token || undefined,
             }),
           });
           const data = await res.json();
@@ -1100,7 +1095,7 @@ export function createApp(args: {
             const friendly = errorCode === "invalid_torbox_token"
               ? ["That key wasn't accepted.", false, "Open Torbox", "https://app.torbox.app/settings/api"]
               : errorCode === "unsafe_config_missing_debrid_tokens"
-                ? ["Enter your API Key to continue.", false, null, null]
+                ? ["Enable Torbox with a valid API Key.", false, null, null]
                 : ["Could not generate a link. Try again.", false, null, null];
             setStatus(friendly[0], friendly[1], friendly[2], friendly[3]);
             setManifestState("");
