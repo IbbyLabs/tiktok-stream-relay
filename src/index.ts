@@ -97,10 +97,7 @@ const effectiveSigningKeys = config.addonLinkSigningKeys ?? runtimeSecrets.addon
 
 const cryptoBox = new CryptoBox(effectiveCryptoSecret);
 const addonLinkStore = new AddonLinkStore(rootDir, cryptoBox);
-const linkTokenService = new LinkTokenService(
-  effectiveSigningKeys,
-  config.addonLinkTtlSeconds,
-);
+const linkTokenService = new LinkTokenService(effectiveSigningKeys);
 const securityEventLog = new SecurityEventLog();
 const memoryRateLimitBackend = new MemoryRateLimitBackend();
 const useRedisRateLimitBackend = Boolean(config.redisUrl && config.publicLaunchMode);

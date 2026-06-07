@@ -37,7 +37,6 @@ TRENDING_SEED_QUERIES=sabrina carpenter,billie eilish,chappell roan,doechii,bens
 TRENDING_MAX_ITEMS=12
 ADDON_CONFIG_ENABLED=true
 ADDON_LIFECYCLE_ENABLED=true
-ADDON_LINK_TTL_SECONDS=604800
 ADDON_LINK_SIGNING_KEYS=
 ADDON_CRYPTO_SECRET=
 PUBLIC_LAUNCH_MODE=false
@@ -178,7 +177,6 @@ Public portal and security:
 
 - `ADDON_CONFIG_ENABLED`: enable `/configure` portal.
 - `ADDON_LIFECYCLE_ENABLED`: enable lifecycle mutation endpoints.
-- `ADDON_LINK_TTL_SECONDS`: addon link token TTL.
 - `ADDON_LINK_SIGNING_KEYS`: required for secure public mode. Use `v1:<secret>` for explicit versioning. A single raw secret is accepted for local use and is treated as `v1`.
 - `ADDON_CRYPTO_SECRET`: required for secure public mode.
 - `PUBLIC_LAUNCH_MODE`: enforce strict public safety checks.

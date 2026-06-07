@@ -8,13 +8,14 @@ export interface AddonConfigEffective {
   torboxToken?: string;
 }
 
-export type LinkStatus = "active" | "superseded" | "revoked";
+export type LinkStatus = "active" | "revoked";
 
 export interface LinkRevision {
   revisionId: number;
   createdAt: string;
   debridEnabled: boolean;
   torboxTokenEncrypted?: string;
+  torboxTokenFingerprint?: string;
 }
 
 export interface LinkIdentity {
@@ -24,7 +25,6 @@ export interface LinkIdentity {
   updatedAt: string;
   activeRevisionId: number;
   revisions: LinkRevision[];
-  supersededByLinkId?: string;
 }
 
 export interface AuditEvent {

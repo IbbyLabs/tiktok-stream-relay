@@ -2,7 +2,6 @@ import crypto from "node:crypto";
 
 interface LinkTokenPayload {
   linkId: string;
-  exp: number;
   v: string;
 }
 
@@ -37,11 +36,9 @@ function sign(input: string, key: string): string {
 
 export class LinkTokenService {
   private readonly keys: SigningKey[];
-  private readonly ttlSeconds: number;
 
-  public constructor(signingKeys: string, ttlSeconds: number) {
+  public constructor(signingKeys: string) {
     this.keys = parseSigningKeys(signingKeys);
-    this.ttlSeconds = Math.max(60, ttlSeconds);
   }
 
   public issue(linkId: string): string {
@@ -49,7 +46,6 @@ export class LinkTokenService {
     const payload: LinkTokenPayload = {
       linkId,
       v: active.version,
-      exp: Math.floor(Date.now() / 1000) + this.ttlSeconds,
     };
     const encoded = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
     const signature = sign(encoded, active.key);
@@ -63,7 +59,7 @@ export class LinkTokenService {
     }
 
     const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as LinkTokenPayload;
-    if (!payload.linkId || !payload.v || typeof payload.exp !== "number") {
+    if (!payload.linkId || !payload.v) {
       throw new Error("invalid_addon_link_token");
     }
 
@@ -75,10 +71,6 @@ export class LinkTokenService {
     const expected = sign(encoded, key.key);
     if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
       throw new Error("invalid_addon_link_signature");
-    }
-
-    if (payload.exp < Math.floor(Date.now() / 1000)) {
-      throw new Error("expired_addon_link_token");
     }
 
     return payload;

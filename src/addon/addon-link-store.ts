@@ -16,6 +16,10 @@ interface LinkStoreData {
   events: AuditEvent[];
 }
 
+interface LegacyLinkIdentity extends Omit<LinkIdentity, "status"> {
+  status: "active" | "revoked" | "superseded";
+}
+
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -24,6 +28,10 @@ function nextRevisionId(link: LinkIdentity): number {
   return link.revisions.length > 0
     ? Math.max(...link.revisions.map((item) => item.revisionId)) + 1
     : 1;
+}
+
+function fingerprintToken(token: string): string {
+  return crypto.createHash("sha256").update(token, "utf8").digest("hex");
 }
 
 export class AddonLinkStore {
@@ -45,8 +53,15 @@ export class AddonLinkStore {
     try {
       const raw = fs.readFileSync(this.filePath, "utf8");
       const parsed = JSON.parse(raw) as LinkStoreData;
+      const links = Array.isArray(parsed.links) ? parsed.links : [];
       return {
-        links: Array.isArray(parsed.links) ? parsed.links : [],
+        links: links.map((item) => {
+          const link = item as LegacyLinkIdentity;
+          return {
+            ...link,
+            status: link.status === "active" ? "active" : "revoked",
+          };
+        }),
         events: Array.isArray(parsed.events) ? parsed.events : [],
       };
     } catch {
@@ -80,7 +95,56 @@ export class AddonLinkStore {
       torboxTokenEncrypted: effective.torboxToken
         ? this.cryptoBox.encrypt(effective.torboxToken)
         : undefined,
+      torboxTokenFingerprint: effective.torboxToken
+        ? fingerprintToken(effective.torboxToken)
+        : undefined,
     };
+  }
+
+  private activeRevision(link: LinkIdentity): LinkRevision | undefined {
+    return link.revisions.find((item) => item.revisionId === link.activeRevisionId);
+  }
+
+  private hasSameTorboxToken(link: LinkIdentity, torboxToken: string): boolean {
+    const activeRevision = this.activeRevision(link);
+    if (!activeRevision) {
+      return false;
+    }
+
+    const targetFingerprint = fingerprintToken(torboxToken);
+    if (activeRevision.torboxTokenFingerprint) {
+      return activeRevision.torboxTokenFingerprint === targetFingerprint;
+    }
+
+    if (!activeRevision.torboxTokenEncrypted) {
+      return false;
+    }
+
+    try {
+      return this.cryptoBox.decrypt(activeRevision.torboxTokenEncrypted) === torboxToken;
+    } catch {
+      return false;
+    }
+  }
+
+  private revokeActiveLinksWithToken(data: LinkStoreData, torboxToken: string, ip?: string): void {
+    for (const link of data.links) {
+      if (link.status !== "active") {
+        continue;
+      }
+      if (!this.hasSameTorboxToken(link, torboxToken)) {
+        continue;
+      }
+
+      link.status = "revoked";
+      link.updatedAt = nowIso();
+      this.addEvent(data, {
+        action: "link_revoked",
+        linkId: link.linkId,
+        ip,
+        reason: "same_torbox_token_replaced",
+      });
+    }
   }
 
   private findRequiredLink(data: LinkStoreData, linkId: string): LinkIdentity {
@@ -96,6 +160,11 @@ export class AddonLinkStore {
     const linkId = crypto.randomUUID();
     const createdAt = nowIso();
     const revision = this.buildRevision(configInput, 1);
+
+    if (revision.torboxTokenEncrypted && configInput.torboxToken) {
+      this.revokeActiveLinksWithToken(data, configInput.torboxToken, ip);
+    }
+
     const link: LinkIdentity = {
       linkId,
       status: "active",
@@ -117,11 +186,10 @@ export class AddonLinkStore {
       throw new Error("link_revoked");
     }
 
-    current.status = "superseded";
+    current.status = "revoked";
     current.updatedAt = nowIso();
 
     const nextLinkId = crypto.randomUUID();
-    current.supersededByLinkId = nextLinkId;
     const replacement: LinkIdentity = {
       linkId: nextLinkId,
       status: "active",
@@ -190,9 +258,6 @@ export class AddonLinkStore {
     const link = this.get(linkId);
     if (!link) {
       throw new Error("link_not_found");
-    }
-    if (link.status === "superseded") {
-      throw new Error("link_superseded");
     }
     if (link.status === "revoked") {
       throw new Error("link_revoked");

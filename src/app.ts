@@ -66,10 +66,9 @@ interface AppConfigLike {
 
 interface LinkIdentityLike {
   linkId: string;
-  status: "active" | "superseded" | "revoked";
+  status: "active" | "revoked";
   activeRevisionId: number;
   revisions: Array<{ revisionId: number; createdAt: string }>;
-  supersededByLinkId?: string;
 }
 
 interface AddonLinkStoreLike {
@@ -283,10 +282,9 @@ function getClientIp(request: express.Request): string {
 
 function toLinkResponse(link: LinkIdentityLike, token: string): {
   linkId: string;
-  status: "active" | "superseded" | "revoked";
+  status: "active" | "revoked";
   activeRevisionId: number;
   availableRevisions: number[];
-  supersededByLinkId?: string;
   addonUrl: string;
   addonToken: string;
 } {
@@ -295,7 +293,6 @@ function toLinkResponse(link: LinkIdentityLike, token: string): {
     status: link.status,
     activeRevisionId: link.activeRevisionId,
     availableRevisions: link.revisions.map((item) => item.revisionId),
-    supersededByLinkId: link.supersededByLinkId,
     addonUrl: `/addon/${encodeURIComponent(token)}/manifest.json`,
     addonToken: token,
   };
@@ -342,14 +339,13 @@ function readAdminToken(request: express.Request): string | undefined {
 }
 
 function mapAddonTokenError(message: string): HttpError {
-  if (message === "link_revoked" || message === "link_superseded") {
+  if (message === "link_revoked") {
     return new HttpError(401, message);
   }
   if (
     message === "invalid_addon_link_token" ||
     message === "unsupported_addon_link_token_version" ||
-    message === "invalid_addon_link_signature" ||
-    message === "expired_addon_link_token"
+    message === "invalid_addon_link_signature"
   ) {
     return new HttpError(401, message);
   }
@@ -427,6 +423,26 @@ export function createApp(args: {
     }
     if (readAdminToken(request) !== args.adminTelemetryToken) {
       throw new HttpError(401, "admin_token_required");
+    }
+  }
+
+  function requireAddonAccess(request: express.Request): { linkId: string } {
+    if (!args.linkTokenService || !args.addonLinkStore) {
+      throw new HttpError(503, "addon_token_verification_unavailable");
+    }
+
+    const token = readAddonToken(request);
+    if (!token) {
+      throw new HttpError(401, "addon_token_required");
+    }
+
+    try {
+      const verified = args.linkTokenService.verify(token);
+      args.addonLinkStore.getActiveConfig(verified.linkId);
+      return verified;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "invalid_addon_link_token";
+      throw mapAddonTokenError(message);
     }
   }
 
@@ -1356,6 +1372,16 @@ export function createApp(args: {
   });
 
   app.get("/addon/:addonToken/search", (request, response) => {
+    try {
+      requireAddonAccess(request);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        response.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+      response.status(401).json({ error: "invalid_addon_link_token" });
+      return;
+    }
     void handleSearchRequest(request, response);
   });
 
@@ -1407,6 +1433,16 @@ export function createApp(args: {
   });
 
   app.get("/addon/:addonToken/album/:id", (request, response) => {
+    try {
+      requireAddonAccess(request);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        response.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+      response.status(401).json({ error: "invalid_addon_link_token" });
+      return;
+    }
     void handleAlbumRequest(request, response);
   });
 
@@ -1457,6 +1493,16 @@ export function createApp(args: {
   });
 
   app.get("/addon/:addonToken/artist/:id", (request, response) => {
+    try {
+      requireAddonAccess(request);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        response.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+      response.status(401).json({ error: "invalid_addon_link_token" });
+      return;
+    }
     void handleArtistRequest(request, response);
   });
 
@@ -1499,6 +1545,16 @@ export function createApp(args: {
   });
 
   app.get("/addon/:addonToken/playlist/:id", (request, response) => {
+    try {
+      requireAddonAccess(request);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        response.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+      response.status(401).json({ error: "invalid_addon_link_token" });
+      return;
+    }
     void handlePlaylistRequest(request, response);
   });
 

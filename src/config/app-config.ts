@@ -23,7 +23,6 @@ export interface AppConfig {
   torboxToken?: string;
   addonConfigEnabled: boolean;
   addonLifecycleEnabled: boolean;
-  addonLinkTtlSeconds: number;
   addonLinkSigningKeys?: string;
   addonCryptoSecret?: string;
   publicLaunchMode: boolean;
@@ -172,7 +171,6 @@ export function loadAppConfig(rootDir: string): AppConfig {
     torboxToken: parseOptionalString(process.env.TORBOX_TOKEN),
     addonConfigEnabled: parseBoolean(process.env.ADDON_CONFIG_ENABLED, true),
     addonLifecycleEnabled: parseBoolean(process.env.ADDON_LIFECYCLE_ENABLED, true),
-    addonLinkTtlSeconds: parseNumber(process.env.ADDON_LINK_TTL_SECONDS, 7 * 24 * 60 * 60),
     addonLinkSigningKeys: parseOptionalString(process.env.ADDON_LINK_SIGNING_KEYS),
     addonCryptoSecret: parseOptionalString(process.env.ADDON_CRYPTO_SECRET),
     publicLaunchMode: parseBoolean(process.env.PUBLIC_LAUNCH_MODE, false),

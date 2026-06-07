@@ -20,7 +20,7 @@ test("public config flow supports lifecycle and stream credential injection", as
   fs.writeFileSync(manifestPath, JSON.stringify({ name: "test" }), "utf8");
 
   const addonLinkStore = new AddonLinkStore(tempDir, new CryptoBox("test-secret"));
-  const tokenService = new LinkTokenService("v1:test-signing-key", 3600);
+  const tokenService = new LinkTokenService("v1:test-signing-key");
   const securityEventLog = new SecurityEventLog();
   const publicSafety = new PublicSafety({
     portalEnabled: true,
@@ -210,7 +210,7 @@ test("lifecycle mutation rejects missing or mismatched addon token", async () =>
   fs.writeFileSync(manifestPath, JSON.stringify({ name: "test" }), "utf8");
 
   const addonLinkStore = new AddonLinkStore(tempDir, new CryptoBox("test-secret"));
-  const tokenService = new LinkTokenService("v1:test-signing-key", 3600);
+  const tokenService = new LinkTokenService("v1:test-signing-key");
 
   const app = createApp({
     manifestPath,
@@ -314,7 +314,7 @@ test("stream fails closed for invalid addon token", async () => {
     diskCache: new DiskCache<SearchPage>(path.join(tempDir, "search-cache"), 60_000),
     streamCache: new StreamCache(path.join(tempDir, "stream-cache")),
     addonLinkStore: new AddonLinkStore(tempDir, new CryptoBox("test-secret")),
-    linkTokenService: new LinkTokenService("v1:test-signing-key", 3600),
+    linkTokenService: new LinkTokenService("v1:test-signing-key"),
   });
 
   const server = app.listen(0);
@@ -330,6 +330,94 @@ test("stream fails closed for invalid addon token", async () => {
     );
     assert.equal(response.status, 401);
     assert.equal(resolveCalls, 0);
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      });
+    });
+  }
+});
+
+test("creating a new manifest with the same Torbox token revokes old addon links", async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "public-config-same-key-revoke-"));
+  const manifestPath = path.join(tempDir, "manifest.json");
+  fs.writeFileSync(manifestPath, JSON.stringify({ name: "test" }), "utf8");
+
+  const app = createApp({
+    manifestPath,
+    config: {
+      debridEnabled: true,
+      streamCacheMaxBytes: 1024,
+      liveSearchMaxResults: 10,
+      searchMaxLimit: 20,
+    },
+    settingsStore: {
+      get: () => ({ debridEnabled: false }),
+      save: () => ({ debridEnabled: false }),
+    },
+    searchService: {
+      search: async () => [],
+      searchPage: async () => ({ tracks: [], hasMore: false } as SearchPage),
+    },
+    streamService: {
+      resolve: async () => ({ type: "url", url: "https://cdn.example/audio.mp3", provider: "torbox" as const }),
+    },
+    memoryCache: new MemoryCache<SearchPage>(60_000, 10),
+    diskCache: new DiskCache<SearchPage>(path.join(tempDir, "search-cache"), 60_000),
+    streamCache: new StreamCache(path.join(tempDir, "stream-cache")),
+    addonLinkStore: new AddonLinkStore(tempDir, new CryptoBox("test-secret")),
+    linkTokenService: new LinkTokenService("v1:test-signing-key"),
+  });
+
+  const server = app.listen(0);
+  try {
+    await new Promise<void>((resolve) => server.once("listening", () => resolve()));
+    const address = server.address();
+    if (!address || typeof address === "string") {
+      throw new Error("server_address_unavailable");
+    }
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+
+    const firstCreate = await fetch(`${baseUrl}/api/config/create`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ debridEnabled: true, torboxToken: "shared-token-1" }),
+    });
+    assert.equal(firstCreate.status, 201);
+    const first = (await firstCreate.json()) as { addonToken: string };
+
+    const secondCreate = await fetch(`${baseUrl}/api/config/create`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ debridEnabled: true, torboxToken: "shared-token-1" }),
+    });
+    assert.equal(secondCreate.status, 201);
+    const second = (await secondCreate.json()) as { addonToken: string };
+
+    const oldSearch = await fetch(
+      `${baseUrl}/addon/${encodeURIComponent(first.addonToken)}/search?q=late`,
+    );
+    assert.equal(oldSearch.status, 401);
+
+    const oldStream = await fetch(
+      `${baseUrl}/stream/${encodeURIComponent(Buffer.from("https://www.tiktok.com/@u/video/1234567890123456789", "utf8").toString("base64url"))}?addonToken=${encodeURIComponent(first.addonToken)}`,
+    );
+    assert.equal(oldStream.status, 401);
+
+    const newSearch = await fetch(
+      `${baseUrl}/addon/${encodeURIComponent(second.addonToken)}/search?q=late`,
+    );
+    assert.equal(newSearch.status, 200);
+
+    const newStream = await fetch(
+      `${baseUrl}/stream/${encodeURIComponent(Buffer.from("https://www.tiktok.com/@u/video/1234567890123456789", "utf8").toString("base64url"))}?addonToken=${encodeURIComponent(second.addonToken)}`,
+    );
+    assert.equal(newStream.status, 200);
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((error) => {
