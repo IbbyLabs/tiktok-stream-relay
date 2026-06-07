@@ -62,5 +62,5 @@ run("node", ["scripts/update-changelog.mjs"]);
 
 run("git", ["add", "-A"]);
 run("git", ["commit", "-m", `chore(release): v${version}`]);
-run("git", ["tag", `v${version}`]);
+run("git", ["tag", "-a", `v${version}`, "-m", `v${version}`]);
 run("git", ["push", "origin", "HEAD", `refs/tags/v${version}`]);
