@@ -187,7 +187,7 @@ GHCR pull examples:
 
 ```bash
 docker pull ghcr.io/ibbylabs/tiktok-stream-relay:latest
-docker pull ghcr.io/ibbylabs/tiktok-stream-relay:v0.5.1
+docker pull ghcr.io/ibbylabs/tiktok-stream-relay:v0.6.0
 ```
 
 ## Eclipse Addon URL

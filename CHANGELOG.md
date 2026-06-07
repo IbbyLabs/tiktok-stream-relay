@@ -12,6 +12,35 @@
 
 <a id="v0-5-1"></a>
 
+<a id="v0-6-0"></a>
+
+## [v0.6.0] - 07/06/2026
+
+### Added
+* simplify manifest link lifecycle and remove forced expiry
+  
+  - Manifest installs now stay valid without time based expiry, so playback no longer stops after a few days.
+  - Creating a new manifest with the same Torbox key now revokes older links from that same key automatically.
+  - Revoked links now fail consistently across search, stream, and catalog routes.
+  - Link status is simplified to active and revoked, reducing confusing lifecycle states.
+  - Environment and docs were updated to remove the link expiry setting.
+
+### Fixed
+* create annotated tags with a release message
+  
+  Release automation now creates a tagged version with a message, which avoids tag creation failures on stricter Git setups.
+* allow manifest generation without Torbox API key
+  
+  - Configure portal now allows link creation when no API key is provided.
+  - Blank key submissions automatically generate a non-Debrid config instead of failing.
+  - Portal guidance text now clarifies that the Torbox API key is optional.
+  - Added integration coverage to confirm config creation succeeds without a key and manifest access still works.
+* enforce active token check on manifest endpoints
+  
+  - Manifest requests now require the addon link to still be active, not just token signature validity.
+  - Replaced or revoked tokens now return unauthorized on manifest routes, making invalid links fail immediately.
+  - Added integration test coverage to confirm old manifest links are blocked after same key replacement.
+
 ## [v0.5.1] - 19/05/2026
 
 ### Fixed
