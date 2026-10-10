@@ -14,6 +14,18 @@
 
 <a id="v0-6-0"></a>
 
+## [0.7.0](https://github.com/IbbyLabs/tiktok-stream-relay/compare/v0.6.0...v0.7.0) (2026-10-10)
+
+
+### Features
+
+* drain on shutdown behind a /ready route ([8cd9f87](https://github.com/IbbyLabs/tiktok-stream-relay/commit/8cd9f877e199c34c269a3c3fb169ea6e5a042ff2))
+
+
+### Bug Fixes
+
+* **store:** write JSON stores atomically, never overwrite a bad file ([26a2432](https://github.com/IbbyLabs/tiktok-stream-relay/commit/26a24321d5fb3693e883e283989fd4dbe4f654aa))
+
 ## [v0.6.0] - 07/06/2026
 
 ### Added
