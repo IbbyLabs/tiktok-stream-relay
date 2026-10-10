@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { readJsonFile, writeJsonFileAtomic } from "../utils/json-file.js";
 
 export interface DebridSettings {
   debridEnabled: boolean;
@@ -12,6 +13,7 @@ function isValidToken(token: string): boolean {
 
 export class SettingsStore {
   private readonly filePath: string;
+  private lastGood: DebridSettings | undefined;
 
   public constructor(
     rootDir: string,
@@ -27,28 +29,41 @@ export class SettingsStore {
         debridEnabled: defaults?.debridEnabled ?? true,
         torboxToken: defaults?.torboxToken,
       };
-      fs.writeFileSync(this.filePath, JSON.stringify(initial), "utf-8");
+      writeJsonFileAtomic(this.filePath, initial);
     }
   }
 
-  public get(): DebridSettings {
-    try {
-      const raw = fs.readFileSync(this.filePath, "utf-8");
-      const parsed = JSON.parse(raw) as DebridSettings;
-      return {
+  private load(): DebridSettings | undefined {
+    const result = readJsonFile(this.filePath);
+    if (result.status === "missing") {
+      return { debridEnabled: true };
+    }
+    if (result.status === "ok" && result.value && typeof result.value === "object") {
+      const parsed = result.value as Partial<DebridSettings>;
+      const settings: DebridSettings = {
         debridEnabled:
           typeof parsed.debridEnabled === "boolean"
             ? parsed.debridEnabled
             : true,
         torboxToken: parsed.torboxToken,
       };
-    } catch {
-      return { debridEnabled: true };
+      this.lastGood = settings;
+      return settings;
     }
+    const reason = result.status === "unreadable" ? result.error.message : "not an object";
+    console.error(`Failed to read the settings store, keeping the file untouched: path=${this.filePath} error=${reason}`);
+    return undefined;
+  }
+
+  public get(): DebridSettings {
+    return this.load() ?? this.lastGood ?? { debridEnabled: true };
   }
 
   public save(next: Partial<DebridSettings>): DebridSettings {
-    const current = this.get();
+    const current = this.load();
+    if (!current) {
+      throw new Error("settings_store_unreadable");
+    }
     const merged: DebridSettings = {
       debridEnabled:
         typeof next.debridEnabled === "boolean"
@@ -61,7 +76,8 @@ export class SettingsStore {
       throw new Error("invalid_torbox_token");
     }
 
-    fs.writeFileSync(this.filePath, JSON.stringify(merged), "utf-8");
+    writeJsonFileAtomic(this.filePath, merged);
+    this.lastGood = merged;
     return merged;
   }
 }

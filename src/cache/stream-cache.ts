@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { writeJsonFileAtomic } from "../utils/json-file.js";
 
 interface StreamEntry {
   key: string;
@@ -44,7 +45,7 @@ export class StreamCache {
   }
 
   private writeMetadata(metadata: StreamMetadata): void {
-    fs.writeFileSync(this.metadataPath, JSON.stringify(metadata), "utf-8");
+    writeJsonFileAtomic(this.metadataPath, metadata);
   }
 
   public keyFromUrl(sourceUrl: string, format = "mp3"): string {

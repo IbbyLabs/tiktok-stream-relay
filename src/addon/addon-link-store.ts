@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { CryptoBox } from "../security/crypto-box.js";
+import { readJsonFile, writeJsonFileAtomic } from "../utils/json-file.js";
 import { applyConfigDefaults, validateConfigSafety } from "./config-policy.js";
 import {
   AddonConfigEffective,
@@ -18,6 +19,24 @@ interface LinkStoreData {
 
 interface LegacyLinkIdentity extends Omit<LinkIdentity, "status"> {
   status: "active" | "revoked" | "superseded";
+}
+
+function emptyStore(): LinkStoreData {
+  return { links: [], events: [] };
+}
+
+function normalizeStore(parsed: Partial<LinkStoreData>): LinkStoreData {
+  const links = Array.isArray(parsed.links) ? parsed.links : [];
+  return {
+    links: links.map((item) => {
+      const link = item as LegacyLinkIdentity;
+      return {
+        ...link,
+        status: link.status === "active" ? "active" : "revoked",
+      };
+    }),
+    events: Array.isArray(parsed.events) ? parsed.events : [],
+  };
 }
 
 function nowIso(): string {
@@ -37,6 +56,7 @@ function fingerprintToken(token: string): string {
 export class AddonLinkStore {
   private readonly filePath: string;
   private readonly cryptoBox: CryptoBox;
+  private lastGood: LinkStoreData | undefined;
 
   public constructor(rootDir: string, cryptoBox: CryptoBox) {
     this.filePath = path.join(rootDir, "config", "addon-links.json");
@@ -44,33 +64,40 @@ export class AddonLinkStore {
 
     if (!fs.existsSync(this.filePath)) {
       fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
-      const initial: LinkStoreData = { links: [], events: [] };
-      fs.writeFileSync(this.filePath, JSON.stringify(initial), "utf8");
+      writeJsonFileAtomic(this.filePath, emptyStore());
     }
+  }
+
+  private load(): LinkStoreData | undefined {
+    const result = readJsonFile(this.filePath);
+    if (result.status === "missing") {
+      return emptyStore();
+    }
+    if (result.status === "ok" && result.value && typeof result.value === "object") {
+      const data = normalizeStore(result.value as Partial<LinkStoreData>);
+      this.lastGood = structuredClone(data);
+      return data;
+    }
+    const reason = result.status === "unreadable" ? result.error.message : "not an object";
+    console.error(`Failed to read the addon link store, keeping the file untouched: path=${this.filePath} error=${reason}`);
+    return undefined;
   }
 
   private read(): LinkStoreData {
-    try {
-      const raw = fs.readFileSync(this.filePath, "utf8");
-      const parsed = JSON.parse(raw) as LinkStoreData;
-      const links = Array.isArray(parsed.links) ? parsed.links : [];
-      return {
-        links: links.map((item) => {
-          const link = item as LegacyLinkIdentity;
-          return {
-            ...link,
-            status: link.status === "active" ? "active" : "revoked",
-          };
-        }),
-        events: Array.isArray(parsed.events) ? parsed.events : [],
-      };
-    } catch {
-      return { links: [], events: [] };
+    return this.load() ?? structuredClone(this.lastGood ?? emptyStore());
+  }
+
+  private readForWrite(): LinkStoreData {
+    const data = this.load();
+    if (!data) {
+      throw new Error("link_store_unreadable");
     }
+    return data;
   }
 
   private write(data: LinkStoreData): void {
-    fs.writeFileSync(this.filePath, JSON.stringify(data), "utf8");
+    writeJsonFileAtomic(this.filePath, data);
+    this.lastGood = structuredClone(data);
   }
 
   private addEvent(data: LinkStoreData, event: Omit<AuditEvent, "eventId" | "timestamp">): void {
@@ -156,7 +183,7 @@ export class AddonLinkStore {
   }
 
   public create(configInput: AddonConfigInput, ip?: string): LinkIdentity {
-    const data = this.read();
+    const data = this.readForWrite();
     const linkId = crypto.randomUUID();
     const createdAt = nowIso();
     const revision = this.buildRevision(configInput, 1);
@@ -180,7 +207,7 @@ export class AddonLinkStore {
   }
 
   public rotate(linkId: string, ip?: string): LinkIdentity {
-    const data = this.read();
+    const data = this.readForWrite();
     const current = this.findRequiredLink(data, linkId);
     if (current.status === "revoked") {
       throw new Error("link_revoked");
@@ -205,7 +232,7 @@ export class AddonLinkStore {
   }
 
   public revoke(linkId: string, ip?: string): LinkIdentity {
-    const data = this.read();
+    const data = this.readForWrite();
     const link = this.findRequiredLink(data, linkId);
     link.status = "revoked";
     link.updatedAt = nowIso();
@@ -215,7 +242,7 @@ export class AddonLinkStore {
   }
 
   public update(linkId: string, configInput: AddonConfigInput, ip?: string): LinkIdentity {
-    const data = this.read();
+    const data = this.readForWrite();
     const link = this.findRequiredLink(data, linkId);
     if (link.status === "revoked") {
       throw new Error("link_revoked");
@@ -232,7 +259,7 @@ export class AddonLinkStore {
   }
 
   public rollback(linkId: string, revisionId: number, ip?: string): LinkIdentity {
-    const data = this.read();
+    const data = this.readForWrite();
     const link = this.findRequiredLink(data, linkId);
     const revision = link.revisions.find((item) => item.revisionId === revisionId);
     if (!revision) {
