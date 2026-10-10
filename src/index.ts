@@ -22,6 +22,7 @@ import { TrendingIndex } from "./search/trending-index.js";
 import { CryptoBox } from "./security/crypto-box.js";
 import { FfmpegResolver } from "./stream/ffmpeg-resolver.js";
 import { StreamService } from "./stream/stream-service.js";
+import { createShutdownDrain } from "./shutdown-drain.js";
 import { type SearchPage } from "./types.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -123,6 +124,17 @@ const publicSafety = new PublicSafety({
   },
 });
 
+const drain = createShutdownDrain({
+  drainSeconds: config.drainSeconds,
+  onClosed: (error) => {
+    if (error) {
+      console.error(`Failed to close the HTTP server cleanly (${error.message})`);
+      process.exit(1);
+    }
+    process.exit(0);
+  },
+});
+
 const app = createApp({
   manifestPath,
   config,
@@ -137,6 +149,7 @@ const app = createApp({
   publicSafety,
   securityEventLog,
   adminTelemetryToken: config.adminTelemetryToken,
+  isDraining: drain.isDraining,
 });
 
 setInterval(() => {
@@ -184,6 +197,9 @@ setInterval(() => {
   });
 }, config.trendingRefreshIntervalMs);
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`IbbyLabs TikTok Stream Relay listening on http://localhost:${port}`);
 });
+
+process.on("SIGTERM", () => drain.begin(server));
+process.on("SIGINT", () => drain.begin(server));

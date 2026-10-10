@@ -28,6 +28,7 @@ export interface AppConfig {
   publicLaunchMode: boolean;
   adminTelemetryToken?: string;
   publicAllowlistIps: string[];
+  drainSeconds: number;
 }
 
 function isWeakSecret(value: string): boolean {
@@ -176,6 +177,7 @@ export function loadAppConfig(rootDir: string): AppConfig {
     publicLaunchMode: parseBoolean(process.env.PUBLIC_LAUNCH_MODE, false),
     adminTelemetryToken: parseOptionalString(process.env.ADMIN_TELEMETRY_TOKEN),
     publicAllowlistIps: parseList(process.env.PUBLIC_ALLOWLIST_IPS, []),
+    drainSeconds: parseNumber(process.env.TTRS_DRAIN_SECONDS, 0),
   };
 
   validatePublicLaunchConfig(config);

@@ -144,6 +144,7 @@ Core runtime:
 - `PORT`: internal service port.
 - `CACHE_ROOT`: cache root path.
 - `REDIS_URL`: required for public launch mode.
+- `TTRS_DRAIN_SECONDS`: seconds `/ready` answers 503 after SIGTERM before the server stops accepting (default `0`).
 
 Debrid and source access:
 
@@ -210,6 +211,7 @@ http://localhost:3000/addon/<token>/manifest.json
 
 - `GET /manifest.json`
 - `GET /health`
+- `GET /ready` (503 while draining on shutdown)
 - `GET /search?q=<query>`
 - `GET /search?q=<query>&limit=<n>`
 - `GET /search?q=<query>&limit=<n>&cursor=<opaque-cursor>`

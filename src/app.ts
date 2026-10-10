@@ -369,6 +369,7 @@ export function createApp(args: {
   publicSafety?: PublicSafetyLike;
   securityEventLog?: SecurityEventLogLike;
   adminTelemetryToken?: string;
+  isDraining?: () => boolean;
 }): Express {
   const app = express();
   app.set("trust proxy", 1);
@@ -465,6 +466,14 @@ export function createApp(args: {
       status: "ok",
       service: "tiktok-stream-relay",
     });
+  });
+
+  app.get("/ready", (_request, response) => {
+    if (args.isDraining?.()) {
+      response.status(503).json({ status: "draining" });
+      return;
+    }
+    response.json({ status: "ready" });
   });
 
   const sendManifest = (response: express.Response): void => {
