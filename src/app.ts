@@ -18,6 +18,7 @@ import { MemoryCache } from "./cache/memory-cache.js";
 import { StreamCache } from "./cache/stream-cache.js";
 import { HttpError } from "./errors/http-error.js";
 import { redactSecret } from "./security/redaction.js";
+import { resolveTrustedProxies } from "./trusted-proxies.js";
 import { type NormalizedTrack, type SearchPage } from "./types.js";
 
 interface SearchServiceLike {
@@ -372,7 +373,7 @@ export function createApp(args: {
   isDraining?: () => boolean;
 }): Express {
   const app = express();
-  app.set("trust proxy", 1);
+  app.set("trust proxy", resolveTrustedProxies());
   const hasAddonServices = Boolean(args.addonLinkStore && args.linkTokenService);
 
   app.use((request, response, next) => {

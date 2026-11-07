@@ -7,6 +7,7 @@ import { MemoryCache } from "./cache/memory-cache.js";
 import { StreamCache } from "./cache/stream-cache.js";
 import { AddonLinkStore } from "./addon/addon-link-store.js";
 import { LinkTokenService } from "./addon/link-token-service.js";
+import { resolveTrustedProxies } from "./trusted-proxies.js";
 import { loadAppConfig } from "./config/app-config.js";
 import { loadOrCreateRuntimeSecrets } from "./config/runtime-secrets.js";
 import { SettingsStore } from "./config/settings-store.js";
@@ -199,6 +200,7 @@ setInterval(() => {
 
 const server = app.listen(port, () => {
   console.log(`IbbyLabs TikTok Stream Relay listening on http://localhost:${port}`);
+  console.log(`trusted proxy ranges: count=${resolveTrustedProxies().length}`);
 });
 
 process.on("SIGTERM", () => drain.begin(server));
