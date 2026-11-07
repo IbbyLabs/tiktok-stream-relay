@@ -14,6 +14,13 @@
 
 <a id="v0-6-0"></a>
 
+## [0.7.1](https://github.com/IbbyLabs/tiktok-stream-relay/compare/v0.7.0...v0.7.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* **proxy:** trust Cloudflare and private ranges for client IP ([418d5ca](https://github.com/IbbyLabs/tiktok-stream-relay/commit/418d5cae2cb10e43edad5e0035950844f214533d))
+
 ## [0.7.0](https://github.com/IbbyLabs/tiktok-stream-relay/compare/v0.6.0...v0.7.0) (2026-10-10)
 
 
